@@ -1,0 +1,44 @@
+{
+  "name": "payroll-app",
+  "version": "1.0.0",
+  "description": "Payroll Desktop Application",
+  "main": "main.js",
+  "author": "Waleed Moos",
+  "license": "ISC",
+  "scripts": {
+    "start": "electron .",
+    "build-react": "cd client && npm run build",
+    "build": "electron-builder",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.0.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "multer": "^2.0.2"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.0.0",
+    "electron-rebuild": "^3.2.9"
+  },
+  "build": {
+    "appId": "com.payroll.app",
+    "productName": "Payroll App",
+    "asar": true,
+    "files": [
+      "server/**/*",
+      "client/build/**/*",
+      "main.js",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "artifactName": "PayrollApp-Setup-${version}.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}
