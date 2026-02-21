@@ -31,6 +31,7 @@ db.exec(`
   );
 
   
+  
 
   CREATE TABLE IF NOT EXISTS pay_runs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -67,4 +68,16 @@ try {
   db.exec(`ALTER TABLE company ADD COLUMN registration_number TEXT`);
 }
 
+try {
+  db.prepare("SELECT smtp_host FROM company LIMIT 1").get();
+} catch {
+  db.exec(`
+    ALTER TABLE company ADD COLUMN smtp_host TEXT;
+    ALTER TABLE company ADD COLUMN smtp_port INTEGER;
+    ALTER TABLE company ADD COLUMN smtp_user TEXT;
+    ALTER TABLE company ADD COLUMN smtp_pass TEXT;
+    ALTER TABLE company ADD COLUMN smtp_from TEXT;
+    ALTER TABLE company ADD COLUMN smtp_secure INTEGER;
+  `);
+}
 module.exports = db;

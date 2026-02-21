@@ -1,6 +1,7 @@
 const express = require("express");
 const path = require("path");
 const cors = require("cors");
+const emailRoutes = require("./routes/email");
 
 const payrollRoutes = require("./routes/payroll");
 const employeeRoutes = require("./routes/employees");
@@ -32,6 +33,7 @@ app.use("/api/payroll", payrollRoutes);
 app.use("/api/employees", employeeRoutes);
 app.use("/api/company", companyRoutes);
 app.use("/api/ytd", ytdRoutes);
+app.use("/api/email", emailRoutes);
 
 /* ===========================
    VERSION CHECK ROUTE

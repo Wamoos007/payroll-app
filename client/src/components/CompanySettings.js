@@ -1,12 +1,14 @@
-import React, { useEffect, useState, useRef } from "react";
 import SignatureCanvas from "react-signature-canvas";
+import { useRef, useEffect, useState } from "react";
 import axios from "axios";
 import {
   Box,
   TextField,
   Button,
   Typography,
-  Divider
+  Divider,
+  FormControlLabel,
+  Switch
 } from "@mui/material";
 
 const API = "http://localhost:3001";
@@ -14,29 +16,15 @@ const API = "http://localhost:3001";
 export default function CompanySettings() {
   const sigPad = useRef(null);
 
-  const [company, setCompany] = useState({
-    name: "",
-    registration_number: "",
-    address: "",
-    contact_email: "",
-    contact_number: "",
-    logo_path: "",
-    signature_image: ""
-  });
+  const [company, setCompany] = useState({});
 
   useEffect(() => {
     loadCompany();
   }, []);
 
   const loadCompany = async () => {
-    try {
-      const res = await axios.get(`${API}/api/company`);
-      if (res.data) {
-        setCompany(res.data);
-      }
-    } catch (err) {
-      console.error("Load company error:", err);
-    }
+    const res = await axios.get(`${API}/api/company`);
+    setCompany(res.data || {});
   };
 
   const handleChange = (e) => {
@@ -46,49 +34,31 @@ export default function CompanySettings() {
     });
   };
 
+  const handleSwitch = (e) => {
+    setCompany({
+      ...company,
+      smtp_secure: e.target.checked
+    });
+  };
+
   const handleSave = async () => {
-    try {
-      await axios.post(`${API}/api/company`, company);
-      alert("Company saved successfully");
-    } catch (err) {
-      console.error("Save error:", err);
-    }
+    await axios.post(`${API}/api/company`, company);
+    alert("Company saved successfully");
   };
 
   const handleLogoUpload = async (e) => {
     const formData = new FormData();
     formData.append("logo", e.target.files[0]);
 
-    try {
-      const res = await axios.post(
-        `${API}/api/company/upload-logo`,
-        formData
-      );
+    const res = await axios.post(
+      `${API}/api/company/upload-logo`,
+      formData
+    );
 
-      setCompany({
-        ...company,
-        logo_path: res.data.logo_path
-      });
-    } catch (err) {
-      console.error("Logo upload error:", err);
-    }
-  };
-
-  const saveSignature = () => {
-  if (!sigPad.current) return;
-
-  const canvas = sigPad.current.getCanvas();
-
-  const signature = canvas.toDataURL("image/png");
-
-  setCompany({
-    ...company,
-    signature_image: signature
-  });
-};
-
-  const clearSignature = () => {
-    sigPad.current.clear();
+    setCompany({
+      ...company,
+      logo_path: res.data.logo_path
+    });
   };
 
   return (
@@ -101,7 +71,7 @@ export default function CompanySettings() {
         fullWidth
         label="Company Name"
         name="name"
-        value={company.name}
+        value={company.name || ""}
         onChange={handleChange}
         margin="normal"
       />
@@ -110,7 +80,7 @@ export default function CompanySettings() {
         fullWidth
         label="Registration Number"
         name="registration_number"
-        value={company.registration_number}
+        value={company.registration_number || ""}
         onChange={handleChange}
         margin="normal"
       />
@@ -119,7 +89,7 @@ export default function CompanySettings() {
         fullWidth
         label="Address"
         name="address"
-        value={company.address}
+        value={company.address || ""}
         onChange={handleChange}
         margin="normal"
       />
@@ -128,7 +98,7 @@ export default function CompanySettings() {
         fullWidth
         label="Email"
         name="contact_email"
-        value={company.contact_email}
+        value={company.contact_email || ""}
         onChange={handleChange}
         margin="normal"
       />
@@ -137,14 +107,13 @@ export default function CompanySettings() {
         fullWidth
         label="Contact Number"
         name="contact_number"
-        value={company.contact_number}
+        value={company.contact_number || ""}
         onChange={handleChange}
         margin="normal"
       />
 
       <Divider sx={{ my: 3 }} />
 
-      {/* LOGO SECTION */}
       <Typography variant="subtitle1">Company Logo</Typography>
 
       <Button variant="outlined" component="label" sx={{ mt: 1 }}>
@@ -153,43 +122,20 @@ export default function CompanySettings() {
       </Button>
 
       {company.logo_path && (
-          <Box
-            sx={{
-              mt: 2,
-              p: 2,
-              border: "1px solid #e0e0e0",
-              borderRadius: 2,
-              backgroundColor: "#fafafa",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              height: 120
-            }}
-          >
-            <img
-              src={`${API}${company.logo_path}?t=${Date.now()}`}
-              alt="Logo"
-              style={{
-                maxHeight: "100%",
-                maxWidth: "100%",
-                objectFit: "contain"
-              }}
-            />
-          </Box>
-        )}
+        <Box sx={{ mt: 2 }}>
+          <img
+            src={`${API}${company.logo_path}?t=${Date.now()}`}
+            alt="Logo"
+            style={{ maxHeight: 100, maxWidth: "100%" }}
+          />
+        </Box>
+      )}
+
       <Divider sx={{ my: 3 }} />
 
-      {/* SIGNATURE PAD SECTION */}
       <Typography variant="subtitle1">Signature</Typography>
 
-      <Box
-        sx={{
-          border: "1px solid #ccc",
-          borderRadius: 2,
-          mt: 2,
-          backgroundColor: "#fff"
-        }}
-      >
+      <Box sx={{ border: "1px solid #ccc", borderRadius: 2, mt: 2 }}>
         <SignatureCanvas
           ref={sigPad}
           penColor="black"
@@ -202,26 +148,110 @@ export default function CompanySettings() {
       </Box>
 
       <Box sx={{ mt: 2, display: "flex", gap: 2 }}>
-        <Button variant="outlined" onClick={clearSignature}>
+        <Button onClick={() => sigPad.current.clear()}>
           Clear
         </Button>
 
-        <Button variant="contained" onClick={saveSignature}>
+        <Button
+          variant="contained"
+          onClick={() => {
+            const signature = sigPad.current
+              .getTrimmedCanvas()
+              .toDataURL("image/png");
+
+            setCompany({
+              ...company,
+              signature_image: signature
+            });
+          }}
+        >
           Save Signature
         </Button>
       </Box>
 
-      {company.signature_image && (
-        <Box sx={{ mt: 2 }}>
-          <Typography variant="body2" color="green">
-            Signature saved
-          </Typography>
-        </Box>
-      )}
+      <Divider sx={{ my: 3 }} />
 
-      <Box sx={{ mt: 4 }}>
-        <Button variant="contained" onClick={handleSave}>
-          Save Company
+      <Typography variant="h6">
+        SMTP Settings
+      </Typography>
+
+      <TextField
+        fullWidth
+        label="SMTP Host"
+        name="smtp_host"
+        value={company.smtp_host || ""}
+        onChange={handleChange}
+        margin="normal"
+      />
+
+      <TextField
+        fullWidth
+        label="SMTP Port"
+        name="smtp_port"
+        value={company.smtp_port || ""}
+        onChange={handleChange}
+        margin="normal"
+      />
+
+      <TextField
+        fullWidth
+        label="SMTP Username"
+        name="smtp_user"
+        value={company.smtp_user || ""}
+        onChange={handleChange}
+        margin="normal"
+      />
+
+      <TextField
+        fullWidth
+        label="SMTP Password"
+        name="smtp_pass"
+        type="password"
+        value={company.smtp_pass || ""}
+        onChange={handleChange}
+        margin="normal"
+      />
+
+      <TextField
+        fullWidth
+        label="From Email"
+        name="smtp_from"
+        value={company.smtp_from || ""}
+        onChange={handleChange}
+        margin="normal"
+      />
+
+      <FormControlLabel
+        control={
+          <Switch
+            checked={company.smtp_secure || false}
+            onChange={handleSwitch}
+          />
+        }
+        label="Use SSL (Secure Connection)"
+      />
+
+            <Box sx={{ mt: 4 }}>
+              <Button variant="contained" onClick={handleSave}>
+                Save Company
+              </Button>
+            </Box>
+            <Box sx={{ mt: 2 }}>
+        <Button
+          variant="outlined"
+          onClick={async () => {
+            try {
+              await axios.post(`${API}/api/email/test`);
+              alert("Test email sent successfully!");
+            } catch (err) {
+              alert(
+                "Test email failed: " +
+                  (err.response?.data?.details || "Unknown error")
+              );
+            }
+          }}
+        >
+          Send Test Email
         </Button>
       </Box>
     </Box>

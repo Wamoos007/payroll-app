@@ -10,14 +10,7 @@ const fs = require("fs");
    ENSURE UPLOAD DIRECTORY EXISTS
 ====================================================== */
 
-const { app } = require("electron");
-
-const uploadDir = process.env.DB_PATH
-  ? path.join(
-      path.dirname(process.env.DB_PATH),
-      "uploads"
-    )
-  : path.join(__dirname, "../uploads");
+const uploadDir = path.join(__dirname, "../uploads");
 
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
@@ -30,7 +23,7 @@ if (!fs.existsSync(uploadDir)) {
 const storage = multer.diskStorage({
   destination: uploadDir,
   filename: (req, file, cb) => {
-    cb(null, "logo.png"); // overwrite existing logo
+    cb(null, "logo.png");
   }
 });
 
@@ -51,7 +44,7 @@ router.get("/", (req, res) => {
 });
 
 /* ======================================================
-   SAVE COMPANY (UPDATED WITH REGISTRATION NUMBER)
+   SAVE COMPANY (WITH SMTP SUPPORT)
 ====================================================== */
 
 router.post("/", (req, res) => {
@@ -62,7 +55,13 @@ router.post("/", (req, res) => {
     contact_email,
     contact_number,
     logo_path,
-    signature_image
+    signature_image,
+    smtp_host,
+    smtp_port,
+    smtp_user,
+    smtp_pass,
+    smtp_from,
+    smtp_secure
   } = req.body;
 
   try {
@@ -77,7 +76,13 @@ router.post("/", (req, res) => {
             contact_email = ?,
             contact_number = ?,
             logo_path = ?,
-            signature_image = ?
+            signature_image = ?,
+            smtp_host = ?,
+            smtp_port = ?,
+            smtp_user = ?,
+            smtp_pass = ?,
+            smtp_from = ?,
+            smtp_secure = ?
         WHERE id = ?
       `).run(
         name,
@@ -87,13 +92,20 @@ router.post("/", (req, res) => {
         contact_number,
         logo_path,
         signature_image,
+        smtp_host,
+        smtp_port,
+        smtp_user,
+        smtp_pass,
+        smtp_from,
+        smtp_secure ? 1 : 0,
         existing.id
       );
     } else {
       db.prepare(`
         INSERT INTO company
-        (name, registration_number, address, contact_email, contact_number, logo_path, signature_image)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        (name, registration_number, address, contact_email, contact_number, logo_path, signature_image,
+         smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from, smtp_secure)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         name,
         registration_number,
@@ -101,7 +113,13 @@ router.post("/", (req, res) => {
         contact_email,
         contact_number,
         logo_path,
-        signature_image
+        signature_image,
+        smtp_host,
+        smtp_port,
+        smtp_user,
+        smtp_pass,
+        smtp_from,
+        smtp_secure ? 1 : 0
       );
     }
 
