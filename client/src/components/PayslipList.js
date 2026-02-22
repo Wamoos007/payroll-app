@@ -1,5 +1,7 @@
+import Payslip from "./Payslip";
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import html2pdf from "html2pdf.js";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -12,7 +14,8 @@ import {
   TableCell,
   TableBody,
   CircularProgress,
-  Button
+  Button,
+  Checkbox
 } from "@mui/material";
 
 const API = "http://localhost:3001";
@@ -31,6 +34,9 @@ function PayslipList() {
   const [selectedRun, setSelectedRun] = useState("");
   const [lines, setLines] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [selected, setSelected] = useState([]);
+  const [sending, setSending] = useState(false);
+  const [activeSendId, setActiveSendId] = useState(null);
 
   /* ===============================
      LOAD PAY RUNS
@@ -51,6 +57,7 @@ function PayslipList() {
     if (!selectedRun) return;
 
     setLoading(true);
+    setSelected([]);
 
     axios
       .get(`${API}/api/payroll/lines/${selectedRun}`)
@@ -66,6 +73,98 @@ function PayslipList() {
       })
       .finally(() => setLoading(false));
   }, [selectedRun]);
+
+  /* ===============================
+     SELECTION LOGIC
+  =============================== */
+
+  const handleSelectAll = e => {
+    if (e.target.checked) {
+      setSelected(lines.map(l => l.id));
+    } else {
+      setSelected([]);
+    }
+  };
+
+  const handleSelect = id => {
+    if (selected.includes(id)) {
+      setSelected(selected.filter(i => i !== id));
+    } else {
+      setSelected([...selected, id]);
+    }
+  };
+
+  /* ===============================
+     SEND SELECTED EMAILS
+  =============================== */
+
+  const handleSendSelected = async () => {
+  if (selected.length === 0) {
+    alert("Please select at least one payslip.");
+    return;
+  }
+
+  setSending(true);
+
+  try {
+    for (const id of selected) {
+      setActiveSendId(id);
+
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const element = document.getElementById("payslip-content");
+
+      if (!element) {
+        console.error("Payslip content not found");
+        continue;
+      }
+
+      const pdfBlob = await html2pdf()
+        .set({
+          margin: 10,
+          image: { type: "jpeg", quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: {
+            unit: "mm",
+            format: "a4",
+            orientation: "portrait"
+          }
+        })
+        .from(element)
+        .outputPdf("blob");
+
+      const arrayBuffer = await pdfBlob.arrayBuffer();
+      const base64 = btoa(
+        new Uint8Array(arrayBuffer)
+          .reduce((data, byte) => data + String.fromCharCode(byte), "")
+      );
+
+      const line = lines.find(l => l.id === id);
+
+      if (!line.email) {
+        alert(`No email set for ${line.full_name}`);
+        continue;
+      }
+
+      await axios.post(`${API}/api/email/send-payslip`, {
+        email: line.email,
+        full_name: line.full_name,
+        pdfBase64: base64
+      });
+    }
+
+    alert("Payslips sent successfully!");
+    setSelected([]);
+  } catch (err) {
+    alert(
+      "Email sending failed: " +
+        (err.response?.data?.error || err.message)
+    );
+  }
+
+  setActiveSendId(null);
+  setSending(false);
+};
 
   return (
     <Box>
@@ -86,12 +185,32 @@ function PayslipList() {
         ))}
       </Select>
 
+      {/* SEND BUTTON */}
+      <Box sx={{ mb: 3 }}>
+        <Button
+          variant="contained"
+          disabled={selected.length === 0}
+          onClick={handleSendSelected}
+        >
+          Send Selected ({selected.length})
+        </Button>
+      </Box>
+
       {loading ? (
         <CircularProgress />
       ) : (
         <Table>
           <TableHead>
             <TableRow>
+              <TableCell padding="checkbox">
+                <Checkbox
+                  checked={
+                    lines.length > 0 &&
+                    selected.length === lines.length
+                  }
+                  onChange={handleSelectAll}
+                />
+              </TableCell>
               <TableCell>Employee</TableCell>
               <TableCell align="right">Gross</TableCell>
               <TableCell align="right">UIF</TableCell>
@@ -118,6 +237,13 @@ function PayslipList() {
 
               return (
                 <TableRow key={line.id}>
+                  <TableCell padding="checkbox">
+                    <Checkbox
+                      checked={selected.includes(line.id)}
+                      onChange={() => handleSelect(line.id)}
+                    />
+                  </TableCell>
+
                   <TableCell>
                     {line.full_name} ({line.employee_code})
                   </TableCell>
@@ -149,7 +275,17 @@ function PayslipList() {
             })}
           </TableBody>
         </Table>
-      )}
+        
+        )}
+
+    {/* HIDDEN RENDERER FOR PDF GENERATION */}
+    {activeSendId && (
+      <div style={{ position: "fixed", left: "-9999px", top: 0 }}>
+        <Payslip lineId={activeSendId} />
+      </div>
+    )}
+
+    
     </Box>
   );
 }

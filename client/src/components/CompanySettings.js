@@ -17,6 +17,7 @@ export default function CompanySettings() {
   const sigPad = useRef(null);
 
   const [company, setCompany] = useState({});
+  const [testEmail, setTestEmail] = useState("");
 
   useEffect(() => {
     loadCompany();
@@ -50,15 +51,43 @@ export default function CompanySettings() {
     const formData = new FormData();
     formData.append("logo", e.target.files[0]);
 
-    const res = await axios.post(
-      `${API}/api/company/upload-logo`,
-      formData
-    );
+    try {
+      const res = await axios.post(
+        `${API}/api/company/upload-logo`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
 
-    setCompany({
-      ...company,
-      logo_path: res.data.logo_path
-    });
+      setCompany(prev => ({
+        ...prev,
+        logo_path: res.data.logo_path
+      }));
+    } catch (err) {
+      console.error("Logo upload error:", err);
+    }
+  };
+
+  const handleTestEmail = async () => {
+    if (!testEmail) {
+      alert("Please enter a test email address.");
+      return;
+    }
+
+    try {
+      const res = await axios.post(
+        `${API}/api/email/test`,
+        { testEmail }
+      );
+
+      alert(
+        `Email sent successfully!\nMessage ID: ${res.data.messageId}`
+      );
+    } catch (err) {
+      alert(
+        "Test failed:\n" +
+        (err.response?.data?.details || err.message)
+      );
+    }
   };
 
   return (
@@ -126,7 +155,11 @@ export default function CompanySettings() {
           <img
             src={`${API}${company.logo_path}?t=${Date.now()}`}
             alt="Logo"
-            style={{ maxHeight: 100, maxWidth: "100%" }}
+            style={{
+              maxHeight: 120,
+              maxWidth: "100%",
+              objectFit: "contain"
+            }}
           />
         </Box>
       )}
@@ -231,27 +264,30 @@ export default function CompanySettings() {
         label="Use SSL (Secure Connection)"
       />
 
-            <Box sx={{ mt: 4 }}>
-              <Button variant="contained" onClick={handleSave}>
-                Save Company
-              </Button>
-            </Box>
-            <Box sx={{ mt: 2 }}>
-        <Button
-          variant="outlined"
-          onClick={async () => {
-            try {
-              await axios.post(`${API}/api/email/test`);
-              alert("Test email sent successfully!");
-            } catch (err) {
-              alert(
-                "Test email failed: " +
-                  (err.response?.data?.details || "Unknown error")
-              );
-            }
-          }}
-        >
-          Send Test Email
+      <Divider sx={{ my: 3 }} />
+
+      <Typography variant="subtitle1">
+        Send Test Email
+      </Typography>
+
+      <TextField
+        fullWidth
+        label="Test Email Address"
+        value={testEmail}
+        onChange={(e) => setTestEmail(e.target.value)}
+        margin="normal"
+      />
+
+      <Button
+        variant="outlined"
+        onClick={handleTestEmail}
+      >
+        Send Test Email
+      </Button>
+
+      <Box sx={{ mt: 4 }}>
+        <Button variant="contained" onClick={handleSave}>
+          Save Company
         </Button>
       </Box>
     </Box>

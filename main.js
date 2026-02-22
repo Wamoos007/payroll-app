@@ -18,14 +18,21 @@ function createWindow() {
   });
 
   if (app.isPackaged) {
-    const indexPath = path.join(__dirname, "client", "build", "index.html");
-    console.log("Loading production file:", indexPath);
-    mainWindow.loadFile(indexPath);
+    mainWindow.loadFile(
+      path.join(__dirname, "client", "build", "index.html")
+    );
   } else {
-    mainWindow.loadURL("http://localhost:3000");
-  }
+    const startUrl = "http://localhost:3000";
 
-  mainWindow.webContents.openDevTools(); // keep this for debugging for now
+    const loadDev = () => {
+      mainWindow.loadURL(startUrl).catch(() => {
+        setTimeout(loadDev, 1000);
+      });
+    };
+
+    loadDev();
+    mainWindow.webContents.openDevTools();
+  }
 }
 
 /* ==========================

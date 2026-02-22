@@ -20,14 +20,20 @@ router.get("/", (req, res) => {
 
 /* CREATE EMPLOYEE */
 router.post("/", (req, res) => {
-  const { full_name, employee_code, id_number, hourly_rate } = req.body;
+  const { full_name, employee_code, id_number, hourly_rate, email } = req.body;
 
   try {
     const result = db.prepare(`
       INSERT INTO employees
-      (full_name, employee_code, id_number, hourly_rate, active)
-      VALUES (?, ?, ?, ?, 1)
-    `).run(full_name, employee_code, id_number, hourly_rate);
+      (full_name, employee_code, id_number, hourly_rate, email, active)
+      VALUES (?, ?, ?, ?, ?, 1)
+    `).run(
+      full_name,
+      employee_code,
+      id_number,
+      hourly_rate,
+      email || null
+    );
 
     res.json({ id: result.lastInsertRowid });
   } catch (err) {
@@ -43,7 +49,8 @@ router.put("/:id", (req, res) => {
     full_name,
     employee_code,
     id_number,
-    hourly_rate
+    hourly_rate,
+    email
   } = req.body;
 
   try {
@@ -52,13 +59,15 @@ router.put("/:id", (req, res) => {
       SET full_name = ?,
           employee_code = ?,
           id_number = ?,
-          hourly_rate = ?
+          hourly_rate = ?,
+          email = ?
       WHERE id = ?
     `).run(
       full_name,
       employee_code,
       id_number,
       hourly_rate,
+      email || null,
       id
     );
 
@@ -69,7 +78,6 @@ router.put("/:id", (req, res) => {
     res.status(500).json({ error: "Update failed" });
   }
 });
-
 
 /* DEACTIVATE EMPLOYEE */
 router.post("/:id/deactivate", (req, res) => {

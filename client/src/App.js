@@ -50,7 +50,7 @@ function PageTitle() {
     titles[location.pathname] ||
     (location.pathname.includes("/payslip/")
       ? "Payslip"
-      : "Payroll App");
+      : "Payroll");
 
   return (
     <Typography variant="h6" noWrap>
@@ -64,16 +64,18 @@ function PageTitle() {
 ================================= */
 function App() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [version, setVersion] = useState("");
 
   useEffect(() => {
     const checkVersion = async () => {
       try {
         const res = await axios.get(`${API}/api/version`);
-        const currentVersion = require("../../package.json").version;
+        const serverVersion = res.data.version;
 
-        if (res.data.version !== currentVersion) {
-          setUpdateAvailable(true);
-        }
+        setVersion(serverVersion);
+
+        // Optional: Compare against hardcoded minimum
+        // For now we only show server version
       } catch {
         console.log("Version check skipped");
       }
@@ -101,32 +103,6 @@ function App() {
       </AppBar>
 
       {/* SIDEBAR */}
-      <List>
-  <ListItem disablePadding>
-    <ListItemButton component={Link} to="/dashboard">
-      <ListItemText primary="Dashboard" />
-    </ListItemButton>
-  </ListItem>
-
-  <ListItem disablePadding>
-    <ListItemButton component={Link} to="/employees">
-      <ListItemText primary="Employees" />
-    </ListItemButton>
-  </ListItem>
-
-  <ListItem disablePadding>
-    <ListItemButton component={Link} to="/payruns">
-      <ListItemText primary="Pay Runs" />
-    </ListItemButton>
-  </ListItem>
-
-  <ListItem disablePadding>
-    <ListItemButton component={Link} to="/company">
-      <ListItemText primary="Company Settings" />
-    </ListItemButton>
-  </ListItem>
-</List>
-
       <Drawer
         variant="permanent"
         sx={{
@@ -136,9 +112,11 @@ function App() {
             width: drawerWidth,
             boxSizing: "border-box",
             backgroundColor: "#1f2937",
-            color: "#ffffff"
+            color: "#ffffff",
+            display: "flex",
+            flexDirection: "column"
           }
-        }}
+  }}
       >
         <Toolbar>
           <Typography variant="h6" fontWeight={700}>
@@ -191,6 +169,19 @@ function App() {
             </ListItemButton>
           </ListItem>
         </List>
+
+        {/* VERSION FOOTER */}
+        <Box sx={{ flexGrow: 1 }} />
+
+        <Box sx={{ p: 2 }}>
+          <Divider sx={{ mb: 1, borderColor: "#374151" }} />
+          <Typography
+            variant="caption"
+            sx={{ opacity: 0.6 }}
+          >
+            Version {version || "—"}
+          </Typography>
+        </Box>
       </Drawer>
 
       {/* MAIN CONTENT */}
@@ -218,7 +209,7 @@ function App() {
         </Routes>
       </Box>
 
-      {/* UPDATE NOTICE */}
+      {/* UPDATE NOTICE (reserved for future auto-update system) */}
       <Snackbar
         open={updateAvailable}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}

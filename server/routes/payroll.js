@@ -94,7 +94,11 @@ router.post("/runs/:runId/add-missing", (req, res) => {
 router.get("/lines/:runId", (req, res) => {
   try {
     const rows = db.prepare(`
-      SELECT pl.*, e.full_name, e.employee_code
+      SELECT 
+        pl.*,
+        e.full_name,
+        e.employee_code,
+        e.email
       FROM payroll_lines pl
       JOIN employees e ON pl.employee_id = e.id
       WHERE pl.pay_run_id = ?
@@ -102,7 +106,9 @@ router.get("/lines/:runId", (req, res) => {
     `).all(req.params.runId);
 
     res.json(rows);
+
   } catch (err) {
+    console.error("Load lines error:", err);
     res.status(500).json({ error: "Load failed" });
   }
 });
@@ -214,6 +220,7 @@ router.get("/lines/forPayslip/:id", (req, res) => {
         e.full_name,
         e.employee_code,
         e.id_number,
+        e.email,
         pr.pay_date,
         pr.period_start,
         pr.period_end
