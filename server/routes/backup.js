@@ -4,7 +4,9 @@ const path = require("path");
 
 const router = express.Router();
 
-const DB_PATH = path.join(__dirname, "../payroll.db");
+const DB_PATH = process.env.DB_PATH ||
+  path.join(__dirname, "../payroll.db");
+
 const BACKUP_DIR = path.join(__dirname, "../backups");
 
 // Ensure backup directory exists
@@ -14,8 +16,9 @@ if (!fs.existsSync(BACKUP_DIR)) {
 
 /**
  * CREATE BACKUP
+ * GET /api/backup
  */
-router.post("/create", (req, res) => {
+router.get("/", (req, res) => {
   try {
     const timestamp = new Date()
       .toISOString()
@@ -41,6 +44,7 @@ router.post("/create", (req, res) => {
 
 /**
  * RESTORE LAST BACKUP
+ * POST /api/backup/restore
  */
 router.post("/restore", (req, res) => {
   try {

@@ -33,8 +33,9 @@ const formatDate = dateString => {
   });
 };
 
-function Payslip() {
-  const { lineId } = useParams();
+function Payslip(props) {
+  const params = useParams();
+  const lineId = props?.lineId || params.lineId;
   const [data, setData] = useState(null);
   const [company, setCompany] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -136,6 +137,7 @@ function Payslip() {
       </Box>
 
       <Box
+        id="payslip-content"
         ref={pdfRef}
         sx={{
           maxWidth: 820,
@@ -154,7 +156,6 @@ function Payslip() {
               <img
                 src={`${API}${company.logo_path}?t=${Date.now()}`}
                 alt="Logo"
-                crossOrigin="anonymous"
                 style={{
                   maxHeight: 80,
                   maxWidth: "100%",

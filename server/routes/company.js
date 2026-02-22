@@ -10,7 +10,21 @@ const fs = require("fs");
    ENSURE UPLOAD DIRECTORY EXISTS
 ====================================================== */
 
-const uploadDir = path.join(__dirname, "../uploads");
+const os = require("os");
+
+let uploadDir;
+
+// If running inside Electron (production)
+if (process.env.APPDATA) {
+  uploadDir = path.join(
+    process.env.APPDATA,
+    "payroll-app",
+    "uploads"
+  );
+} else {
+  // Fallback for development
+  uploadDir = path.join(__dirname, "../uploads");
+}
 
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });

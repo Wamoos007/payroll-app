@@ -113,6 +113,7 @@ function Employees() {
             <TableCell>Code</TableCell>
             <TableCell>Name</TableCell>
             <TableCell>ID Number</TableCell>
+            <TableCell>Email</TableCell>
             <TableCell>Rate</TableCell>
             <TableCell>Status</TableCell>
             <TableCell align="right">Actions</TableCell>
@@ -132,6 +133,7 @@ function Employees() {
                 <TableCell>{emp.employee_code}</TableCell>
                 <TableCell>{emp.full_name}</TableCell>
                 <TableCell>{emp.id_number}</TableCell>
+                <TableCell>{emp.email || "-"}</TableCell>
                 <TableCell>R {emp.hourly_rate}</TableCell>
                 <TableCell>
                   {emp.active ? "Active" : "Inactive"}
