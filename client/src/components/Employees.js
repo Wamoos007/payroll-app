@@ -22,6 +22,7 @@ function Employees() {
   const [employees, setEmployees] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [form, setForm] = useState({
     id: null,
     full_name: "",
@@ -95,6 +96,40 @@ function Employees() {
     }
   };
 
+  const handleImport = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  setImporting(true);
+
+  try {
+    const res = await axios.post(
+      `${API}/api/employees/import`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" }
+      }
+    );
+
+    alert(
+      `Import Complete\nInserted: ${res.data.inserted}\nSkipped: ${res.data.skipped}`
+    );
+
+    window.location.reload(); // reload employee list
+
+  } catch (err) {
+    alert(
+      "Import failed: " +
+      (err.response?.data?.error || err.message)
+    );
+  }
+
+  setImporting(false);
+};
+
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h5" sx={{ mb: 3 }}>
@@ -104,6 +139,20 @@ function Employees() {
       <Box sx={{ mb: 3 }}>
         <Button variant="contained" onClick={handleAddClick}>
           Add New Employee
+        </Button>
+
+        <Button
+          variant="outlined"
+          component="label"
+          sx={{ ml: 2 }}
+        >
+          Import CSV
+          <input
+            type="file"
+            hidden
+            accept=".csv"
+            onChange={handleImport}
+          />
         </Button>
       </Box>
 

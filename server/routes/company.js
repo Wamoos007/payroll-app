@@ -1,37 +1,24 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../db");
-
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
 /* ======================================================
-   ENSURE UPLOAD DIRECTORY EXISTS
+   UPLOAD DIRECTORY
 ====================================================== */
 
-const os = require("os");
-
-let uploadDir;
-
-// If running inside Electron (production)
-if (process.env.APPDATA) {
-  uploadDir = path.join(
-    process.env.APPDATA,
-    "payroll-app",
-    "uploads"
-  );
-} else {
-  // Fallback for development
-  uploadDir = path.join(__dirname, "../uploads");
-}
+const uploadDir = process.env.APPDATA
+  ? path.join(process.env.APPDATA, "payroll-app", "uploads")
+  : path.join(__dirname, "../uploads");
 
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
 /* ======================================================
-   MULTER STORAGE CONFIG
+   MULTER CONFIG
 ====================================================== */
 
 const storage = multer.diskStorage({
@@ -58,82 +45,80 @@ router.get("/", (req, res) => {
 });
 
 /* ======================================================
-   SAVE COMPANY (WITH SMTP SUPPORT)
+   SAVE COMPANY
 ====================================================== */
 
 router.post("/", (req, res) => {
-  const {
-    name,
-    registration_number,
-    address,
-    contact_email,
-    contact_number,
-    logo_path,
-    signature_image,
-    smtp_host,
-    smtp_port,
-    smtp_user,
-    smtp_pass,
-    smtp_from,
-    smtp_secure
-  } = req.body;
+  const data = req.body;
 
   try {
     const existing = db.prepare("SELECT id FROM company LIMIT 1").get();
 
     if (existing) {
       db.prepare(`
-        UPDATE company
-        SET name = ?,
-            registration_number = ?,
-            address = ?,
-            contact_email = ?,
-            contact_number = ?,
-            logo_path = ?,
-            signature_image = ?,
-            smtp_host = ?,
-            smtp_port = ?,
-            smtp_user = ?,
-            smtp_pass = ?,
-            smtp_from = ?,
-            smtp_secure = ?
-        WHERE id = ?
+        UPDATE company SET
+          name=?,
+          registration_number=?,
+          address=?,
+          contact_email=?,
+          contact_number=?,
+          logo_path=?,
+          signature_image=?,
+          smtp_host=?,
+          smtp_port=?,
+          smtp_user=?,
+          smtp_pass=?,
+          smtp_from=?,
+          smtp_secure=?
+        WHERE id=?
       `).run(
-        name,
-        registration_number,
-        address,
-        contact_email,
-        contact_number,
-        logo_path,
-        signature_image,
-        smtp_host,
-        smtp_port,
-        smtp_user,
-        smtp_pass,
-        smtp_from,
-        smtp_secure ? 1 : 0,
+        data.name,
+        data.registration_number,
+        data.address,
+        data.contact_email,
+        data.contact_number,
+        data.logo_path,
+        data.signature_image,
+        data.smtp_host,
+        data.smtp_port,
+        data.smtp_user,
+        data.smtp_pass,
+        data.smtp_from,
+        data.smtp_secure ? 1 : 0,
         existing.id
       );
     } else {
       db.prepare(`
-        INSERT INTO company
-        (name, registration_number, address, contact_email, contact_number, logo_path, signature_image,
-         smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from, smtp_secure)
+        INSERT INTO company (
+          name,
+          registration_number,
+          address,
+          contact_email,
+          contact_number,
+          logo_path,
+          signature_image,
+          smtp_host,
+          smtp_port,
+          smtp_user,
+          smtp_pass,
+          smtp_from,
+          smtp_secure
+        )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
-        name,
-        registration_number,
-        address,
-        contact_email,
-        contact_number,
-        logo_path,
-        signature_image,
-        smtp_host,
-        smtp_port,
-        smtp_user,
-        smtp_pass,
-        smtp_from,
-        smtp_secure ? 1 : 0
+        data.name,
+        data.registration_number,
+        data.address,
+        data.contact_email,
+        data.contact_number,
+        data.logo_path,
+        data.signature_image,
+        data.smtp_host,
+        data.smtp_port,
+        data.smtp_user,
+        data.smtp_pass,
+        data.smtp_from,
+        data.smtp_secure ? 1 : 0
       );
     }
 

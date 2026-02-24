@@ -37,7 +37,7 @@ function YTD() {
         `${API}/api/ytd/${year}`
       );
 
-      setData(Array.isArray(res.data) ? res.data : []);
+      setData(res.data || []);
     } catch (err) {
       console.error("YTD load error:", err);
       setData([]);

@@ -3,10 +3,6 @@ const router = express.Router();
 const nodemailer = require("nodemailer");
 const db = require("../db");
 
-/* ================================
-   CREATE SMTP TRANSPORTER
-================================ */
-
 function createTransporter(company) {
   return nodemailer.createTransport({
     host: company.smtp_host,
@@ -19,12 +15,7 @@ function createTransporter(company) {
   });
 }
 
-/* ================================
-   SEND PAYSLIP (PDF FROM FRONTEND)
-================================ */
-
 router.post("/send-payslip", async (req, res) => {
-  console.log("BODY RECEIVED:", req.body);
   try {
     const { email, full_name, pdfBase64 } = req.body;
 

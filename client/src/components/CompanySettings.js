@@ -24,8 +24,12 @@ export default function CompanySettings() {
   }, []);
 
   const loadCompany = async () => {
-    const res = await axios.get(`${API}/api/company`);
-    setCompany(res.data || {});
+    try {
+      const res = await axios.get(`${API}/api/company`);
+      setCompany(res.data || {});
+    } catch (err) {
+      console.error("Load company error:", err);
+    }
   };
 
   const handleChange = (e) => {
@@ -43,8 +47,13 @@ export default function CompanySettings() {
   };
 
   const handleSave = async () => {
-    await axios.post(`${API}/api/company`, company);
-    alert("Company saved successfully");
+    try {
+      await axios.post(`${API}/api/company`, company);
+      alert("Company saved successfully");
+    } catch (err) {
+      console.error("Save error:", err);
+      alert("Save failed");
+    }
   };
 
   const handleLogoUpload = async (e) => {
@@ -89,6 +98,18 @@ export default function CompanySettings() {
       );
     }
   };
+
+  const handleSaveSignature = () => {
+  if (!sigPad.current) return;
+
+  const canvas = sigPad.current.getCanvas();
+  const signature = canvas.toDataURL("image/png");
+
+  setCompany({
+    ...company,
+    signature_image: signature
+  });
+};
 
   return (
     <Box sx={{ p: 3, maxWidth: 700 }}>
@@ -153,11 +174,11 @@ export default function CompanySettings() {
       {company.logo_path && (
         <Box sx={{ mt: 2 }}>
           <img
-            src={`${API}${company.logo_path}?t=${Date.now()}`}
+            src={`${API}${company.logo_path}`}
             alt="Logo"
+            crossOrigin="anonymous"
             style={{
-              maxHeight: 120,
-              maxWidth: "100%",
+              height: 80,
               objectFit: "contain"
             }}
           />
@@ -187,16 +208,7 @@ export default function CompanySettings() {
 
         <Button
           variant="contained"
-          onClick={() => {
-            const signature = sigPad.current
-              .getTrimmedCanvas()
-              .toDataURL("image/png");
-
-            setCompany({
-              ...company,
-              signature_image: signature
-            });
-          }}
+          onClick={handleSaveSignature}
         >
           Save Signature
         </Button>
