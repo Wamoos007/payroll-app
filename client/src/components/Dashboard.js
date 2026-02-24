@@ -42,57 +42,73 @@ function Dashboard() {
      SAFE DATA LOADER (FIXED)
   ================================= */
   const loadData = async () => {
-    try {
-      /* -------- YTD -------- */
-      const ytdRes = await axios.get(
-  `${API}/api/payroll/ytd-summary/${year}`
+  try {
+    /* -------- YTD -------- */
+    const ytdRes = await axios.get(`${API}/api/ytd/${year}`);
+
+const employees = Array.isArray(ytdRes.data)
+  ? ytdRes.data
+  : [];
+
+const totalGross = employees.reduce(
+  (sum, e) => sum + Number(e.totalGross || 0),
+  0
 );
 
+const totalUif = employees.reduce(
+  (sum, e) => sum + Number(e.totalUif || 0),
+  0
+);
 
-      setYtd(ytdRes.data || {
-        totalGross: 0,
-        totalUif: 0,
-        totalNet: 0
-      });
+const totalNet = employees.reduce(
+  (sum, e) => sum + Number(e.totalNet || 0),
+  0
+);
 
-      /* -------- MONTHLY -------- */
-      const monthlyRes = await axios.get(
-        `${API}/api/payroll/monthly-summary/${year}`
+setYtd({
+  totalGross,
+  totalUif,
+  totalNet
+});
+
+    /* -------- MONTHLY -------- */
+    const monthlyRes = await axios.get(
+      `${API}/api/payroll/monthly-summary/${year}`
+    );
+
+    const monthlyData = Array.isArray(monthlyRes.data)
+      ? monthlyRes.data
+      : [];
+
+    const formattedMonths = Array.from({ length: 12 }, (_, i) => {
+      const monthNumber = String(i + 1).padStart(2, "0");
+
+      const found = monthlyData.find(
+        m => m.month === monthNumber
       );
 
-      const monthlyData = Array.isArray(monthlyRes.data)
-        ? monthlyRes.data
-        : [];
+      return {
+        name: new Date(0, i).toLocaleString("default", {
+          month: "short"
+        }),
+        gross: found ? Number(found.totalGross) : 0
+      };
+    });
 
-      const formattedMonths = Array.from({ length: 12 }, (_, i) => {
-        const monthNumber = String(i + 1).padStart(2, "0");
+    setMonthly(formattedMonths);
 
-        const found = monthlyData.find(
-          m => m.month === monthNumber
-        );
+  } catch (err) {
+    console.error("Dashboard load error:", err);
 
-        return {
-          name: new Date(0, i).toLocaleString("default", {
-            month: "short"
-          }),
-          gross: found ? Number(found.totalGross) : 0
-        };
-      });
+    setYtd({
+      totalGross: 0,
+      totalUif: 0,
+      totalNet: 0
+    });
 
-      setMonthly(formattedMonths);
-
-    } catch (err) {
-      console.error("Dashboard load error:", err);
-
-      // Prevent app crash
-      setYtd({
-        totalGross: 0,
-        totalUif: 0,
-        totalNet: 0
-      });
-      setMonthly([]);
-    }
-  };
+    setMonthly([]);
+  }
+};
 
   /* ================================
      BACKUP

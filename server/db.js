@@ -16,6 +16,7 @@ db.exec(`
     employee_code TEXT,
     hourly_rate REAL NOT NULL,
     id_number TEXT,
+    email TEXT,
     active INTEGER DEFAULT 1
   );
 
@@ -27,11 +28,14 @@ db.exec(`
     contact_email TEXT,
     contact_number TEXT,
     logo_path TEXT,
-    signature_image TEXT
+    signature_image TEXT,
+    smtp_host TEXT,
+    smtp_port INTEGER,
+    smtp_user TEXT,
+    smtp_pass TEXT,
+    smtp_from TEXT,
+    smtp_secure INTEGER
   );
-
-  
-  
 
   CREATE TABLE IF NOT EXISTS pay_runs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -60,17 +64,19 @@ db.exec(`
   );
 `);
 
-// Ensure registration_number column exists (safe migration)
+// 🔧 Safe migration: ensure email column exists
 try {
-  db.prepare(`SELECT registration_number FROM company LIMIT 1`).get();
-} catch (err) {
-  console.log("Adding registration_number column...");
-  db.exec(`ALTER TABLE company ADD COLUMN registration_number TEXT`);
+  db.prepare("SELECT email FROM employees LIMIT 1").get();
+} catch {
+  console.log("Adding missing email column to employees table...");
+  db.exec("ALTER TABLE employees ADD COLUMN email TEXT");
 }
 
+// 🔧 Ensure SMTP columns exist
 try {
   db.prepare("SELECT smtp_host FROM company LIMIT 1").get();
 } catch {
+  console.log("Adding missing SMTP columns to company table...");
   db.exec(`
     ALTER TABLE company ADD COLUMN smtp_host TEXT;
     ALTER TABLE company ADD COLUMN smtp_port INTEGER;
@@ -80,4 +86,5 @@ try {
     ALTER TABLE company ADD COLUMN smtp_secure INTEGER;
   `);
 }
+
 module.exports = db;

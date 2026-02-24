@@ -1,24 +1,31 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../db");
+const multer = require("multer");
+const { parse } = require("csv-parse/sync");
+const fs = require("fs");
+const path = require("path");
 
-/* GET ALL EMPLOYEES */
+const upload = multer({
+  dest: path.join(__dirname, "../uploads")
+});
+
+/* GET ALL */
 router.get("/", (req, res) => {
   try {
     const rows = db.prepare(`
-      SELECT *
-      FROM employees
+      SELECT * FROM employees
       ORDER BY employee_code ASC
     `).all();
 
     res.json(rows);
   } catch (err) {
-    console.error("Load employees error:", err);
+    console.error(err);
     res.status(500).json({ error: "Database error" });
   }
 });
 
-/* CREATE EMPLOYEE */
+/* CREATE */
 router.post("/", (req, res) => {
   const { full_name, employee_code, id_number, hourly_rate, email } = req.body;
 
@@ -37,21 +44,15 @@ router.post("/", (req, res) => {
 
     res.json({ id: result.lastInsertRowid });
   } catch (err) {
-    console.error("Create employee error:", err);
+    console.error(err);
     res.status(500).json({ error: "Insert failed" });
   }
 });
 
-/* UPDATE EMPLOYEE */
+/* UPDATE */
 router.put("/:id", (req, res) => {
   const { id } = req.params;
-  const {
-    full_name,
-    employee_code,
-    id_number,
-    hourly_rate,
-    email
-  } = req.body;
+  const { full_name, employee_code, id_number, hourly_rate, email } = req.body;
 
   try {
     db.prepare(`
@@ -72,42 +73,89 @@ router.put("/:id", (req, res) => {
     );
 
     res.json({ success: true });
-
   } catch (err) {
-    console.error("Update employee error:", err);
+    console.error(err);
     res.status(500).json({ error: "Update failed" });
   }
 });
 
-/* DEACTIVATE EMPLOYEE */
+/* DEACTIVATE */
 router.post("/:id/deactivate", (req, res) => {
   try {
     db.prepare(`
-      UPDATE employees
-      SET active = 0
-      WHERE id = ?
+      UPDATE employees SET active = 0 WHERE id = ?
     `).run(req.params.id);
 
     res.json({ success: true });
   } catch (err) {
-    console.error("Deactivate error:", err);
     res.status(500).json({ error: "Deactivate failed" });
   }
 });
 
-/* REACTIVATE EMPLOYEE */
+/* REACTIVATE */
 router.post("/:id/reactivate", (req, res) => {
   try {
     db.prepare(`
-      UPDATE employees
-      SET active = 1
-      WHERE id = ?
+      UPDATE employees SET active = 1 WHERE id = ?
     `).run(req.params.id);
 
     res.json({ success: true });
   } catch (err) {
-    console.error("Reactivate error:", err);
     res.status(500).json({ error: "Reactivate failed" });
+  }
+});
+
+/* CSV IMPORT */
+router.post("/import", upload.single("file"), (req, res) => {
+  try {
+    const fileContent = fs.readFileSync(req.file.path);
+
+    const records = parse(fileContent, {
+      columns: true,
+      skip_empty_lines: true,
+      trim: true
+    });
+
+    let inserted = 0;
+    let skipped = 0;
+    const errors = [];
+
+    const stmt = db.prepare(`
+      INSERT INTO employees
+      (full_name, employee_code, id_number, hourly_rate, email, active)
+      VALUES (?, ?, ?, ?, ?, 1)
+    `);
+
+    for (const row of records) {
+      if (!row.full_name || !row.employee_code) {
+        skipped++;
+        continue;
+      }
+
+      try {
+        stmt.run(
+          row.full_name,
+          row.employee_code,
+          row.id_number || "",
+          Number(row.hourly_rate || 0),
+          row.email || ""
+        );
+        inserted++;
+      } catch (err) {
+        errors.push({
+          employee_code: row.employee_code,
+          error: err.message
+        });
+      }
+    }
+
+    fs.unlinkSync(req.file.path);
+
+    res.json({ success: true, inserted, skipped, errors });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Import failed" });
   }
 });
 
