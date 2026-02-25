@@ -1,76 +1,52 @@
 const { app, BrowserWindow } = require("electron");
 const path = require("path");
 
-let mainWindow;
+// Start Express server
+require("./server/app");
 
-/* ==========================
-   CREATE WINDOW
-========================== */
+const isDev = process.env.NODE_ENV !== "production";
+
+let mainWindow;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: 1400,
+    height: 900,
+    backgroundColor: "#f3f4f6",
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false
+      nodeIntegration: false,
+      contextIsolation: true
     }
   });
 
-  if (app.isPackaged) {
-    mainWindow.loadFile(
-      path.join(__dirname, "client", "build", "index.html")
-    );
-  } else {
-    const startUrl = "http://localhost:3000";
+  mainWindow.setMenu(null);
 
-    const loadDev = () => {
-      mainWindow.loadURL(startUrl).catch(() => {
-        setTimeout(loadDev, 1000);
-      });
-    };
-
-    loadDev();
+  if (isDev) {
+    mainWindow.loadURL("http://localhost:3000");
     mainWindow.webContents.openDevTools();
+  } else {
+    mainWindow.loadFile(
+      path.join(__dirname, "client/build/index.html")
+    );
   }
+// 🔥 ALWAYS allow DevTools temporarily
+mainWindow.webContents.openDevTools();
+
+  mainWindow.on("closed", () => {
+    mainWindow = null;
+  });
 }
-
-/* ==========================
-   START SERVER SAFELY
-========================== */
-
-function startServer() {
-  try {
-    const serverPath = path.join(__dirname, "server", "app.js");
-    console.log("Starting server from:", serverPath);
-    require(serverPath);
-    console.log("Server started successfully");
-  } catch (err) {
-    console.error("Server failed to start:", err);
-  }
-}
-
-/* ==========================
-   APP READY
-========================== */
 
 app.whenReady().then(() => {
-
-  console.log("Electron ready");
-
-  process.env.DB_PATH = path.join(app.getPath("userData"), "payroll.db");
-  console.log("DB PATH:", process.env.DB_PATH);
-
-  startServer();
-
   createWindow();
+
+  app.on("activate", function () {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
 });
 
-/* ==========================
-   SINGLE INSTANCE LOCK
-========================== */
-
-const gotLock = app.requestSingleInstanceLock();
-if (!gotLock) {
-  app.quit();
-}
+app.on("window-all-closed", function () {
+  if (process.platform !== "darwin") {
+    app.quit();
+  }
+});

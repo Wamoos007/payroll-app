@@ -21,6 +21,10 @@ import {
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 
+
+/* ================= API BASE ================= */
+const API = "http://localhost:3001";
+
 function PayRuns() {
   const [runs, setRuns] = useState([]);
   const [openAdd, setOpenAdd] = useState(false);
@@ -33,35 +37,76 @@ function PayRuns() {
     pay_date: ""
   });
 
+  /* ================= LOAD RUNS ================= */
   const loadRuns = async () => {
-    const res = await axios.get("http://localhost:3001/api/payroll/runs");
-    setRuns(res.data);
+    try {
+      const res = await axios.get(`${API}/api/payroll/runs`);
+      setRuns(res.data || []);
+    } catch (err) {
+      console.error("Load runs error:", err);
+      setRuns([]);
+    }
   };
 
   useEffect(() => {
     loadRuns();
   }, []);
 
+  /* ================= ADD RUN ================= */
   const handleAdd = async () => {
-    await axios.post("http://localhost:3001/api/payroll/runs", form);
-    setOpenAdd(false);
-    setForm({ period_start: "", period_end: "", pay_date: "" });
-    loadRuns();
+    try {
+      if (!form.period_start || !form.period_end || !form.pay_date) {
+        alert("Please complete all fields.");
+        return;
+      }
+
+      await axios.post(`${API}/api/payroll/runs`, form);
+
+      setOpenAdd(false);
+      setForm({
+        period_start: "",
+        period_end: "",
+        pay_date: ""
+      });
+
+      loadRuns();
+    } catch (err) {
+      console.error("Add run error:", err);
+      alert("Failed to create pay run.");
+    }
   };
 
+  /* ================= EDIT RUN ================= */
   const handleEdit = async () => {
-    await axios.patch(
-      `http://localhost:3001/api/payroll/runs/${selected.id}`,
-      form
-    );
-    setOpenEdit(false);
-    loadRuns();
+    try {
+      if (!selected) return;
+
+      await axios.patch(
+        `${API}/api/payroll/runs/${selected.id}`,
+        form
+      );
+
+      setOpenEdit(false);
+      setSelected(null);
+
+      loadRuns();
+    } catch (err) {
+      console.error("Edit run error:", err);
+      alert("Failed to update pay run.");
+    }
   };
 
+  /* ================= DELETE RUN ================= */
   const handleDelete = async id => {
     if (!window.confirm("Delete this pay run?")) return;
-    await axios.delete(`http://localhost:3001/api/payroll/runs/${id}`);
-    loadRuns();
+
+    try {
+      await axios.delete(`${API}/api/payroll/runs/${id}`);
+      loadRuns();
+    } catch (err) {
+      console.error("Delete run error:", err);
+      alert("Failed to delete pay run.");
+    }
   };
 
   return (
@@ -70,11 +115,15 @@ function PayRuns() {
         Pay Runs
       </Typography>
 
-      <Button variant="contained" onClick={() => setOpenAdd(true)}>
+      <Button
+        variant="contained"
+        sx={{ mb: 2 }}
+        onClick={() => setOpenAdd(true)}
+      >
         + Add New Pay Run
       </Button>
 
-      <Table sx={{ mt: 2 }}>
+      <Table>
         <TableHead>
           <TableRow>
             <TableCell>Period Start</TableCell>
@@ -90,27 +139,43 @@ function PayRuns() {
               <TableCell>{run.period_start}</TableCell>
               <TableCell>{run.period_end}</TableCell>
               <TableCell>{run.pay_date}</TableCell>
+
               <TableCell align="right">
                 <IconButton
                   onClick={() => {
                     setSelected(run);
-                    setForm(run);
+                    setForm({
+                      period_start: run.period_start,
+                      period_end: run.period_end,
+                      pay_date: run.pay_date
+                    });
                     setOpenEdit(true);
                   }}
                 >
                   <EditIcon />
                 </IconButton>
 
-                <IconButton onClick={() => handleDelete(run.id)}>
+                <IconButton
+                  color="error"
+                  onClick={() => handleDelete(run.id)}
+                >
                   <DeleteIcon />
                 </IconButton>
               </TableCell>
             </TableRow>
           ))}
+
+          {runs.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={4} align="center">
+                No pay runs found
+              </TableCell>
+            </TableRow>
+          )}
         </TableBody>
       </Table>
 
-      {/* ADD DIALOG */}
+      {/* ================= ADD DIALOG ================= */}
       <Dialog open={openAdd} onClose={() => setOpenAdd(false)}>
         <DialogTitle>Add Pay Run</DialogTitle>
         <DialogContent>
@@ -150,11 +215,13 @@ function PayRuns() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenAdd(false)}>Cancel</Button>
-          <Button onClick={handleAdd}>Save</Button>
+          <Button variant="contained" onClick={handleAdd}>
+            Save
+          </Button>
         </DialogActions>
       </Dialog>
 
-      {/* EDIT DIALOG */}
+      {/* ================= EDIT DIALOG ================= */}
       <Dialog open={openEdit} onClose={() => setOpenEdit(false)}>
         <DialogTitle>Edit Pay Run</DialogTitle>
         <DialogContent>
@@ -194,7 +261,9 @@ function PayRuns() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenEdit(false)}>Cancel</Button>
-          <Button onClick={handleEdit}>Save</Button>
+          <Button variant="contained" onClick={handleEdit}>
+            Save Changes
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>
