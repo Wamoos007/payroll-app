@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Routes, Route, Link, useLocation } from "react-router-dom";
 import axios from "axios";
-
+import SARS from "./components/SARS";
 import {
   Box,
   Drawer,
@@ -164,11 +164,17 @@ function App() {
           </ListItem>
 
           <ListItem disablePadding>
-            <ListItemButton component={Link} to="/company">
-              <ListItemText primary="Company Settings" />
+            <ListItemButton component={Link} to="/sars">
+              <ListItemText primary="SARS" />
             </ListItemButton>
           </ListItem>
         </List>
+
+        <ListItem disablePadding>
+  <ListItemButton component={Link} to="/company">
+    <ListItemText primary="Settings" />
+  </ListItemButton>
+</ListItem>
 
         {/* VERSION FOOTER */}
         <Box sx={{ flexGrow: 1 }} />
@@ -206,6 +212,7 @@ function App() {
           <Route path="/payslip/:lineId" element={<Payslip />} />
           <Route path="/ytd" element={<YTD />} />
           <Route path="/company" element={<CompanySettings />} />
+          <Route path="/sars" element={<SARS />} />
         </Routes>
       </Box>
 
