@@ -214,156 +214,112 @@ function Payslip(props) {
           <Table size="small">
             <TableBody>
 
-              {/* EARNINGS & DEDUCTIONS */}
-<Box sx={{ px: 3, py: 3 }}>
+              {/* EARNINGS */}
+              <TableRow sx={{ backgroundColor: "#e6ecf8" }}>
+                <TableCell sx={{ fontWeight: 700 }}>EARNINGS</TableCell>
+                <TableCell />
+                <TableCell align="right" sx={{ fontWeight: 700 }}>
+                  Amount
+                </TableCell>
+              </TableRow>
 
-  <Table
-    size="small"
-    sx={{
-      width: "100%",
-      border: "1px solid #081e4d",
-      borderCollapse: "collapse"
-    }}
-  >
-    <TableBody>
+              <TableRow>
+                <TableCell>Normal Pay</TableCell>
+                <TableCell />
+                <TableCell align="right">{money(normalPay)}</TableCell>
+              </TableRow>
 
-      {/* EARNINGS HEADER */}
-      <TableRow sx={{ backgroundColor: "#e6ecf8" }}>
-        <TableCell sx={{ fontWeight: 700, color: "#081e4d" }}>
-          EARNINGS
-        </TableCell>
-        <TableCell />
-        <TableCell align="right" sx={{ fontWeight: 700 }}>
-          Amount
-        </TableCell>
-      </TableRow>
+              <TableRow>
+                <TableCell>Overtime 1.5x</TableCell>
+                <TableCell />
+                <TableCell align="right">{money(ot15Pay)}</TableCell>
+              </TableRow>
 
-      <TableRow>
-        <TableCell>Normal Pay</TableCell>
-        <TableCell />
-        <TableCell align="right">{money(normalPay)}</TableCell>
-      </TableRow>
+              <TableRow>
+                <TableCell>Overtime 2x</TableCell>
+                <TableCell />
+                <TableCell align="right">{money(ot20Pay)}</TableCell>
+              </TableRow>
 
-      <TableRow>
-        <TableCell>Overtime 1.5</TableCell>
-        <TableCell />
-        <TableCell align="right">{money(ot15Pay)}</TableCell>
-      </TableRow>
+              <TableRow>
+                <TableCell colSpan={3} />
+              </TableRow>
 
-      <TableRow>
-        <TableCell>Overtime 2.0</TableCell>
-        <TableCell />
-        <TableCell align="right">{money(ot20Pay)}</TableCell>
-      </TableRow>
+              {/* DEDUCTIONS */}
+              <TableRow sx={{ backgroundColor: "#e6ecf8" }}>
+                <TableCell sx={{ fontWeight: 700 }}>DEDUCTIONS</TableCell>
+                <TableCell />
+                <TableCell align="right" sx={{ fontWeight: 700 }}>
+                  Amount
+                </TableCell>
+              </TableRow>
 
-      {/* Spacer */}
-      <TableRow>
-        <TableCell colSpan={3} sx={{ height: 10 }} />
-      </TableRow>
+              <TableRow>
+                <TableCell>UIF (1%)</TableCell>
+                <TableCell />
+                <TableCell align="right">{money(uif)}</TableCell>
+              </TableRow>
 
-      {/* DEDUCTIONS HEADER */}
-      <TableRow sx={{ backgroundColor: "#e6ecf8" }}>
-        <TableCell sx={{ fontWeight: 700, color: "#081e4d" }}>
-          DEDUCTIONS
-        </TableCell>
-        <TableCell />
-        <TableCell align="right" sx={{ fontWeight: 700 }}>
-          Amount
-        </TableCell>
-      </TableRow>
+              {payeEnabled && (
+                <TableRow>
+                  <TableCell>PAYE (Tax)</TableCell>
+                  <TableCell />
+                  <TableCell align="right">{money(tax)}</TableCell>
+                </TableRow>
+              )}
 
-      <TableRow>
-        <TableCell>UIF (1%)</TableCell>
-        <TableCell />
-        <TableCell align="right">{money(uif)}</TableCell>
-      </TableRow>
+              {data.deductions?.map(d => (
+                <TableRow key={d.id}>
+                  <TableCell>{d.description}</TableCell>
+                  <TableCell />
+                  <TableCell align="right">{money(d.amount)}</TableCell>
+                </TableRow>
+              ))}
 
-      {/* PAYE — ONLY IF ENABLED */}
-      {data.settings?.enable_paye === "1" && (
-        <TableRow>
-          <TableCell>PAYE (Tax)</TableCell>
-          <TableCell />
-          <TableCell align="right">{money(tax)}</TableCell>
-        </TableRow>
-      )}
+              {/* Solid closing line */}
+              <TableRow>
+                <TableCell colSpan={3}
+                  sx={{ borderBottom: "3px solid #000000" }}
+                />
+              </TableRow>
 
-      {/* Manual Deductions */}
-      {data.deductions?.map(d => (
-        <TableRow key={d.id}>
-          <TableCell>{d.description}</TableCell>
-          <TableCell />
-          <TableCell align="right">{money(d.amount)}</TableCell>
-        </TableRow>
-      ))}
+            </TableBody>
+          </Table>
+        </Box>
 
-      {/* Solid Black Line Under Deductions */}
-      <TableRow>
-        <TableCell
-          colSpan={3}
-          sx={{ borderBottom: "3px solid #000000" }}
-        />
-      </TableRow>
+        {/* FINANCIAL SUMMARY */}
+        <Box
+          sx={{
+            px: 3,
+            py: 2,
+            borderTop: "2px solid #081e4d",
+            borderBottom: "2px solid #081e4d",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center"
+          }}
+        >
+          <Typography>
+            Gross Pay: <strong>{money(gross)}</strong>
+          </Typography>
 
-    </TableBody>
-  </Table>
-</Box>
+          <Typography>
+            Total Deductions: <strong>{money(totalDeductions)}</strong>
+          </Typography>
 
+          <Box sx={{
+            backgroundColor: "#081e4d",
+            color: "#fff",
+            px: 3,
+            py: 1
+          }}>
+            <Typography sx={{ fontWeight: 900, fontSize: 20 }}>
+              NET PAY {money(netPay)}
+            </Typography>
+          </Box>
+        </Box>
 
-{/* HORIZONTAL FINANCIAL SUMMARY */}
-<Box
-  sx={{
-    px: 3,
-    py: 2,
-    borderTop: "2px solid #081e4d",
-    borderBottom: "2px solid #081e4d"
-  }}
->
-  <Box
-    sx={{
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between"
-    }}
-  >
-    <Box sx={{ display: "flex", gap: 1 }}>
-      <Typography sx={{ fontWeight: 600 }}>
-        Gross Pay
-      </Typography>
-      <Typography sx={{ fontWeight: 700 }}>
-        {money(gross)}
-      </Typography>
-    </Box>
-
-    <Box sx={{ display: "flex", gap: 1 }}>
-      <Typography sx={{ fontWeight: 600 }}>
-        Total Deductions
-      </Typography>
-      <Typography sx={{ fontWeight: 700 }}>
-        {money(totalDeductions)}
-      </Typography>
-    </Box>
-
-    <Box
-      sx={{
-        display: "flex",
-        gap: 2,
-        alignItems: "center",
-        backgroundColor: "#081e4d",
-        color: "#fff",
-        px: 3,
-        py: 1
-      }}
-    >
-      <Typography sx={{ fontWeight: 700 }}>
-        NET PAY
-      </Typography>
-
-      <Typography sx={{ fontWeight: 900, fontSize: 22 }}>
-        {money(netPay)}
-      </Typography>
-    </Box>
-  </Box>
-</Box>
+      </Box>
 
       {/* DELETE DIALOG */}
       <Dialog open={showDeleteDialog}>
