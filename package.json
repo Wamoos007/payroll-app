@@ -1,6 +1,6 @@
 {
   "name": "payroll-app",
-  "version": "2.4.3",
+  "version": "2.4.4",
   "description": "Payroll Desktop Application",
   "main": "main.js",
   "author": "Waleed Moos",
