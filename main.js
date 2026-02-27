@@ -2,7 +2,7 @@ const { app, BrowserWindow, dialog } = require("electron");
 const { autoUpdater } = require("electron-updater");
 const log = require("electron-log");
 const path = require("path");
-const { ipcMain } = require("electron");
+const fs = require("fs");
 
 let mainWindow;
 
@@ -14,7 +14,27 @@ log.transports.file.level = "info";
 autoUpdater.logger = log;
 
 /* ---------------------------
-   UPDATER EVENTS
+   DATABASE BACKUP BEFORE UPDATE
+---------------------------- */
+
+function backupDatabase() {
+  try {
+    const userDataPath = app.getPath("userData");
+    const dbFile = path.join(userDataPath, "payroll.db");
+
+    if (fs.existsSync(dbFile)) {
+      const backupName = `payroll_backup_${Date.now()}.db`;
+      const backupPath = path.join(userDataPath, backupName);
+      fs.copyFileSync(dbFile, backupPath);
+      log.info("Database backup created:", backupPath);
+    }
+  } catch (err) {
+    log.error("Database backup failed:", err);
+  }
+}
+
+/* ---------------------------
+   AUTO UPDATER EVENTS
 ---------------------------- */
 
 autoUpdater.on("checking-for-update", () => {
@@ -98,10 +118,15 @@ function createWindow() {
 ---------------------------- */
 
 app.whenReady().then(() => {
+
+  // Expose correct userData path to backend
+  process.env.USER_DATA_PATH = app.getPath("userData");
+
   startServer();
   createWindow();
 
   if (app.isPackaged) {
+    backupDatabase();
     autoUpdater.checkForUpdates();
   }
 });
