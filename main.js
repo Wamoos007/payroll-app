@@ -1,45 +1,61 @@
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow, dialog } = require("electron");
 const { autoUpdater } = require("electron-updater");
 const log = require("electron-log");
 const path = require("path");
+const { ipcMain } = require("electron");
 
 let mainWindow;
 
 /* ---------------------------
-   AUTO UPDATER CONFIG
+   LOGGING
 ---------------------------- */
 
+log.transports.file.level = "info";
 autoUpdater.logger = log;
-autoUpdater.logger.transports.file.level = "info";
+
+/* ---------------------------
+   UPDATER EVENTS
+---------------------------- */
 
 autoUpdater.on("checking-for-update", () => {
-  console.log("Checking for update...");
+  log.info("Checking for update...");
 });
 
-autoUpdater.on("update-available", () => {
-  console.log("Update available.");
+autoUpdater.on("update-available", (info) => {
+  log.info("Update available:", info.version);
 });
 
 autoUpdater.on("update-not-available", () => {
-  console.log("No updates available.");
+  log.info("No updates available.");
 });
 
 autoUpdater.on("error", (err) => {
-  console.error("Update error:", err);
+  log.error("Update error:", err);
 });
 
-autoUpdater.on("download-progress", (progressObj) => {
-  console.log(
-    "Download speed:",
-    progressObj.bytesPerSecond,
-    "Downloaded:",
-    progressObj.percent + "%"
-  );
+autoUpdater.on("download-progress", (progress) => {
+  const percent = Math.round(progress.percent);
+
+  if (mainWindow) {
+    mainWindow.webContents.send("update-progress", percent);
+  }
 });
 
 autoUpdater.on("update-downloaded", () => {
-  console.log("Update downloaded. Installing...");
-  autoUpdater.quitAndInstall();
+  log.info("Update downloaded.");
+
+  dialog.showMessageBox(mainWindow, {
+    type: "info",
+    title: "Update Ready",
+    message: "A new version has been downloaded.",
+    detail: "Restart the application to apply the update.",
+    buttons: ["Restart Now", "Later"],
+    defaultId: 0
+  }).then(result => {
+    if (result.response === 0) {
+      autoUpdater.quitAndInstall();
+    }
+  });
 });
 
 /* ---------------------------
@@ -48,7 +64,7 @@ autoUpdater.on("update-downloaded", () => {
 
 function startServer() {
   const serverPath = path.join(__dirname, "server", "app.js");
-  console.log("Loading server from:", serverPath);
+  log.info("Loading server from:", serverPath);
   require(serverPath);
 }
 
@@ -62,14 +78,11 @@ function createWindow() {
     height: 900,
     webPreferences: {
       contextIsolation: true,
-      devTools: true   // keep true while testing
+      preload: path.join(__dirname, "preload.js")
     }
   });
 
   mainWindow.setMenu(null);
-
-  // Open DevTools for debugging
-  mainWindow.webContents.openDevTools();
 
   if (!app.isPackaged) {
     mainWindow.loadURL("http://localhost:3000");
@@ -89,7 +102,7 @@ app.whenReady().then(() => {
   createWindow();
 
   if (app.isPackaged) {
-    autoUpdater.checkForUpdatesAndNotify();
+    autoUpdater.checkForUpdates();
   }
 });
 

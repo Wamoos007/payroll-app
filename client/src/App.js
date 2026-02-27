@@ -65,6 +65,7 @@ function PageTitle() {
 function App() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [version, setVersion] = useState("");
+  const [updateProgress, setUpdateProgress] = useState(null);
 
   useEffect(() => {
     const checkVersion = async () => {
@@ -82,6 +83,12 @@ function App() {
     };
 
     checkVersion();
+
+    if (window.electronAPI) {
+      window.electronAPI.onUpdateProgress((percent) => {
+        setUpdateProgress(percent);
+      });
+    }
   }, []);
 
   return (
@@ -225,6 +232,31 @@ function App() {
           New version available. Please update.
         </Alert>
       </Snackbar>
+      {updateProgress !== null && (
+  <Box
+    sx={{
+      position: "fixed",
+      bottom: 0,
+      left: drawerWidth,
+      width: `calc(100% - ${drawerWidth}px)`,
+      backgroundColor: "#e5e7eb",
+      p: 1,
+      zIndex: 2000
+    }}
+  >
+    <Box
+      sx={{
+        height: 8,
+        width: `${updateProgress}%`,
+        backgroundColor: "#2563eb",
+        transition: "width 0.3s ease"
+      }}
+    />
+    <Typography variant="caption" align="center" display="block">
+      Downloading update… {updateProgress}%
+    </Typography>
+  </Box>
+)}
     </Box>
   );
 }
