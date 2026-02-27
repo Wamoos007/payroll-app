@@ -1,4 +1,8 @@
 import React, { useEffect, useState } from "react";
+import IconButton from "@mui/material/IconButton";
+import EditIcon from "@mui/icons-material/Edit";
+import BlockIcon from "@mui/icons-material/Block";
+import { MenuItem } from "@mui/material";
 import axios from "axios";
 import {
   Box,
@@ -22,6 +26,7 @@ function Employees() {
   const [openDialog, setOpenDialog] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [filter, setFilter] = useState("active");
   const [form, setForm] = useState({
     id: null,
     full_name: "",
@@ -155,6 +160,21 @@ function Employees() {
         </Button>
       </Box>
 
+      <Box sx={{ mb: 2 }}>
+        <TextField
+          select
+          label="Filter"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          size="small"
+          sx={{ width: 200 }}
+        >
+          <MenuItem value="active">Active Only</MenuItem>
+          <MenuItem value="inactive">Inactive Only</MenuItem>
+          <MenuItem value="all">All Employees</MenuItem>
+        </TextField>
+      </Box>
+
       <Table>
         <TableHead>
           <TableRow>
@@ -176,7 +196,13 @@ function Employees() {
               </TableCell>
             </TableRow>
           ) : (
-            employees.map((emp) => (
+            employees
+              .filter(emp => {
+                if (filter === "active") return emp.active;
+                if (filter === "inactive") return !emp.active;
+                return true;
+              })
+              .map((emp) => (
               <TableRow key={emp.id}>
                 <TableCell>{emp.employee_code}</TableCell>
                 <TableCell>{emp.full_name}</TableCell>
@@ -188,22 +214,19 @@ function Employees() {
                 </TableCell>
 
                 <TableCell align="right">
-                  <Button
-                    size="small"
+                  <IconButton
                     onClick={() => handleEditClick(emp)}
-                    sx={{ mr: 1 }}
                   >
-                    Edit
-                  </Button>
+                    <EditIcon />
+                  </IconButton>
 
                   {emp.active ? (
-                    <Button
-                      size="small"
-                      color="error"
+                    <IconButton
+                      color="warning"
                       onClick={() => handleDeactivate(emp.id)}
                     >
-                      Deactivate
-                    </Button>
+                      <BlockIcon />
+                    </IconButton>
                   ) : (
                     <Button
                       size="small"

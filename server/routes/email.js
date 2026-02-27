@@ -3,59 +3,38 @@ const router = express.Router();
 const nodemailer = require("nodemailer");
 const db = require("../db");
 
-function createTransporter(company) {
-  return nodemailer.createTransport({
-    host: company.smtp_host,
-    port: Number(company.smtp_port),
-    secure: company.smtp_secure === 1,
-    auth: {
-      user: company.smtp_user,
-      pass: company.smtp_pass
-    }
-  });
-}
+router.post("/test", async (req, res) => {
+  const { testEmail } = req.body;
 
-router.post("/send-payslip", async (req, res) => {
   try {
-    const { email, full_name, pdfBase64 } = req.body;
-
-    if (!email || !pdfBase64) {
-      return res.status(400).json({
-        error: "Missing email or PDF data"
-      });
-    }
-
     const company = db.prepare("SELECT * FROM company LIMIT 1").get();
 
-    if (!company || !company.smtp_host) {
-      return res.status(400).json({
-        error: "SMTP not configured"
-      });
+    if (!company) {
+      return res.status(400).json({ error: "Company settings missing" });
     }
 
-    const transporter = createTransporter(company);
-    await transporter.verify();
-
-    const pdfBuffer = Buffer.from(pdfBase64, "base64");
-
-    await transporter.sendMail({
-      from: company.smtp_from,
-      to: email,
-      subject: `Payslip - ${full_name}`,
-      text: "Please find your payslip attached.",
-      attachments: [
-        {
-          filename: `Payslip_${full_name}.pdf`,
-          content: pdfBuffer
-        }
-      ]
+    const transporter = nodemailer.createTransport({
+      host: company.smtp_host,
+      port: Number(company.smtp_port),
+      secure: !!company.smtp_secure,
+      auth: {
+        user: company.smtp_user,
+        pass: company.smtp_pass
+      }
     });
 
-    res.json({ success: true });
+    const info = await transporter.sendMail({
+      from: company.smtp_from,
+      to: testEmail,
+      subject: "Payroll Test Email",
+      text: "SMTP configuration successful."
+    });
+
+    res.json({ success: true, messageId: info.messageId });
 
   } catch (err) {
-    console.error("Send Payslip Error:", err);
-    res.status(500).json({ error: err.message });
+    console.error("Email test failed:", err);
+    res.status(500).json({ error: "Email failed", details: err.message });
   }
 });
 

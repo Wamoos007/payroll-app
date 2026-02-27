@@ -1,194 +1,230 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
+import html2pdf from "html2pdf.js";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
   Select,
   MenuItem,
+  Button,
   Table,
   TableHead,
   TableRow,
   TableCell,
   TableBody,
   TextField,
-  CircularProgress,
-  Button
+  Divider
 } from "@mui/material";
 
 const API = "http://localhost:3001";
 
 function EnterHours() {
-  const navigate = useNavigate();
-
   const [runs, setRuns] = useState([]);
-  const [selectedRun, setSelectedRun] = useState("");
+  const [selectedRun, setSelectedRun] = useState(null);
   const [lines, setLines] = useState([]);
-  const [loading, setLoading] = useState(false);
 
-  const [savingRow, setSavingRow] = useState(null);
-  const [savedRow, setSavedRow] = useState(null);
-
-  const debounceTimers = useRef({});
-
-  /* ===============================
-     LOAD PAY RUNS
-  =============================== */
+  /* ================= LOAD RUNS ================= */
   useEffect(() => {
     axios.get(`${API}/api/payroll/runs`).then(res => {
-      setRuns(res.data);
-      if (res.data.length > 0) {
-        setSelectedRun(res.data[0].id);
-      }
+      setRuns(res.data || []);
     });
   }, []);
 
-  /* ===============================
-     LOAD PAYROLL LINES
-  =============================== */
-  const loadLines = () => {
-    if (!selectedRun) return;
-
-    setLoading(true);
+  /* ================= LOAD LINES ================= */
+  useEffect(() => {
+    if (!selectedRun) {
+      setLines([]);
+      return;
+    }
 
     axios
       .get(`${API}/api/payroll/lines/${selectedRun}`)
       .then(res => {
-        const sorted = res.data.sort((a, b) =>
-          a.employee_code.localeCompare(b.employee_code)
-        );
-        setLines(sorted);
-      })
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    loadLines();
+        setLines(res.data || []);
+      });
   }, [selectedRun]);
 
-  /* ===============================
-     ADD MISSING EMPLOYEES
-  =============================== */
-  const addMissingEmployees = async () => {
+  /* ================= UPDATE HOURS ================= */
+  const handleChange = (id, field, value) => {
+    const updated = lines.map(line =>
+      line.id === id ? { ...line, [field]: value } : line
+    );
+
+    setLines(updated);
+
+    const updatedLine = updated.find(l => l.id === id);
+
+    axios.put(`${API}/api/payroll/lines/${id}`, {
+      hours_wk1: updatedLine.hours_wk1,
+      hours_wk2: updatedLine.hours_wk2,
+      ot15_hours: updatedLine.ot15_hours,
+      ot20_hours: updatedLine.ot20_hours
+    });
+  };
+
+  /* ================= ADD MISSING EMPLOYEES ================= */
+  const handleAddMissing = async () => {
     if (!selectedRun) return;
 
     await axios.post(
       `${API}/api/payroll/runs/${selectedRun}/add-missing`
     );
 
-    loadLines();
+    const res = await axios.get(
+      `${API}/api/payroll/lines/${selectedRun}`
+    );
+
+    setLines(res.data || []);
   };
 
-  /* ===============================
-     DEBOUNCED SAVE
-  =============================== */
-  const debouncedSave = (id, updatedLine) => {
-    if (debounceTimers.current[id]) {
-      clearTimeout(debounceTimers.current[id]);
-    }
+  /* ================= PROFESSIONAL PDF EXPORT ================= */
+  const handleExportPDF = () => {
+    if (!selectedRun || lines.length === 0) return;
 
-    debounceTimers.current[id] = setTimeout(async () => {
-      try {
-        setSavingRow(id);
-        setSavedRow(null);
+    const run = runs.find(r => r.id === selectedRun);
 
-        await axios.put(`${API}/api/payroll/lines/${id}`, {
-          hours_wk1: updatedLine.hours_wk1,
-          hours_wk2: updatedLine.hours_wk2,
-          ot15_hours: updatedLine.ot15_hours,
-          ot20_hours: updatedLine.ot20_hours
-        });
+    const rows = lines.map(line => {
+      const total =
+        Number(line.hours_wk1 || 0) +
+        Number(line.hours_wk2 || 0) +
+        Number(line.ot15_hours || 0) +
+        Number(line.ot20_hours || 0);
 
-        setSavingRow(null);
-        setSavedRow(id);
+      return `
+        <tr>
+          <td>${line.full_name} (${line.employee_code})</td>
+          <td>${line.hours_wk1 || 0}</td>
+          <td>${line.hours_wk2 || 0}</td>
+          <td>${line.ot15_hours || 0}</td>
+          <td>${line.ot20_hours || 0}</td>
+          <td>${total}</td>
+          <td>${line.rate_used}</td>
+        </tr>
+      `;
+    }).join("");
 
-        setTimeout(() => setSavedRow(null), 1500);
-      } catch (err) {
-        console.error("Auto-save failed:", err);
-        setSavingRow(null);
-      }
-    }, 500);
-  };
+    const html = `
+      <div style="font-family: Arial; padding: 20px;">
+        <h2 style="margin-bottom:5px;">Payroll Hours Report</h2>
+        <p><strong>Pay Date:</strong> ${run?.pay_date}</p>
+        <hr style="margin:15px 0;" />
+        <table style="width:100%; border-collapse: collapse;">
+          <thead>
+            <tr>
+              <th style="border:1px solid #ccc; padding:6px;">Employee</th>
+              <th style="border:1px solid #ccc; padding:6px;">Week 1</th>
+              <th style="border:1px solid #ccc; padding:6px;">Week 2</th>
+              <th style="border:1px solid #ccc; padding:6px;">OT 1.5</th>
+              <th style="border:1px solid #ccc; padding:6px;">OT 2.0</th>
+              <th style="border:1px solid #ccc; padding:6px;">Total</th>
+              <th style="border:1px solid #ccc; padding:6px;">Rate</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+      </div>
+    `;
 
-  /* ===============================
-     HANDLE FIELD CHANGE
-  =============================== */
-  const handleChange = (id, field, value) => {
-    const numeric = Math.max(0, Number(value));
-
-    const updatedLines = lines.map(line => {
-      if (line.id === id) {
-        const updatedLine = {
-          ...line,
-          [field]: numeric
-        };
-
-        debouncedSave(id, updatedLine);
-        return updatedLine;
-      }
-      return line;
-    });
-
-    setLines(updatedLines);
+    html2pdf()
+      .set({
+        margin: 10,
+        filename: `Hours_${run?.pay_date}.pdf`,
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+      })
+      .from(html)
+      .save();
   };
 
   return (
-    <Box>
-      <Typography variant="h5" mb={3}>
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h5" sx={{ mb: 3 }}>
         Enter Hours
       </Typography>
 
-      {/* PAY RUN SELECTOR */}
-      <Select
-        value={selectedRun}
-        onChange={e => setSelectedRun(e.target.value)}
-        sx={{ mb: 2, minWidth: 240 }}
-      >
-        {runs.map(run => (
-          <MenuItem key={run.id} value={run.id}>
-            {run.pay_date}
-          </MenuItem>
-        ))}
-      </Select>
-
-      {/* ADD MISSING EMPLOYEES BUTTON */}
+      {/* RUN SELECTOR */}
       <Box sx={{ mb: 3 }}>
+        <Select
+          value={selectedRun || ""}
+          displayEmpty
+          onChange={(e) =>
+            setSelectedRun(e.target.value || null)
+          }
+          sx={{ width: 250 }}
+        >
+          <MenuItem value="">
+            <em>Select Pay Run</em>
+          </MenuItem>
+
+          {runs.map(run => (
+            <MenuItem key={run.id} value={run.id}>
+              {run.pay_date}
+            </MenuItem>
+          ))}
+        </Select>
+      </Box>
+
+      {/* ACTION BUTTONS */}
+      <Box sx={{ mb: 3, display: "flex", gap: 2 }}>
         <Button
           variant="outlined"
-          onClick={addMissingEmployees}
           disabled={!selectedRun}
+          onClick={handleAddMissing}
         >
           Add New Employees To This Run
         </Button>
+
+        <Button
+          variant="contained"
+          disabled={!selectedRun}
+          onClick={handleExportPDF}
+        >
+          Export Hours Report
+        </Button>
       </Box>
 
-      {loading ? (
-        <CircularProgress />
+      {!selectedRun ? (
+        <Box
+          sx={{
+            mt: 5,
+            p: 5,
+            backgroundColor: "#ffffff",
+            borderRadius: 2,
+            textAlign: "center",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.08)"
+          }}
+        >
+          <Typography variant="h6" sx={{ mb: 1 }}>
+            No Pay Run Selected
+          </Typography>
+
+          <Typography color="text.secondary">
+            Please select a pay run to view and edit hours.
+          </Typography>
+        </Box>
       ) : (
         <Table>
           <TableHead>
             <TableRow>
               <TableCell>Employee</TableCell>
-              <TableCell align="center">Week 1</TableCell>
-              <TableCell align="center">Week 2</TableCell>
-              <TableCell align="center">OT 1.5</TableCell>
-              <TableCell align="center">OT 2.0</TableCell>
-              <TableCell align="center">Total Hours</TableCell>
-              <TableCell align="center">Rate</TableCell>
-              <TableCell align="center">Status</TableCell>
-              <TableCell align="center">Payslip</TableCell>
+              <TableCell>Week 1</TableCell>
+              <TableCell>Week 2</TableCell>
+              <TableCell>OT 1.5</TableCell>
+              <TableCell>OT 2.0</TableCell>
+              <TableCell>Total Hours</TableCell>
+              <TableCell>Rate</TableCell>
             </TableRow>
           </TableHead>
 
           <TableBody>
             {lines.map(line => {
-              const totalHours =
+              const total =
                 Number(line.hours_wk1 || 0) +
                 Number(line.hours_wk2 || 0) +
                 Number(line.ot15_hours || 0) +
                 Number(line.ot20_hours || 0);
-
-              const hasHours = totalHours > 0;
 
               return (
                 <TableRow key={line.id}>
@@ -196,82 +232,68 @@ function EnterHours() {
                     {line.full_name} ({line.employee_code})
                   </TableCell>
 
-                  <TableCell align="center">
+                  <TableCell>
                     <TextField
-                      size="small"
                       type="number"
+                      size="small"
                       value={line.hours_wk1 || 0}
-                      onChange={e =>
-                        handleChange(line.id, "hours_wk1", e.target.value)
+                      onChange={(e) =>
+                        handleChange(
+                          line.id,
+                          "hours_wk1",
+                          e.target.value
+                        )
                       }
                     />
                   </TableCell>
 
-                  <TableCell align="center">
+                  <TableCell>
                     <TextField
-                      size="small"
                       type="number"
+                      size="small"
                       value={line.hours_wk2 || 0}
-                      onChange={e =>
-                        handleChange(line.id, "hours_wk2", e.target.value)
+                      onChange={(e) =>
+                        handleChange(
+                          line.id,
+                          "hours_wk2",
+                          e.target.value
+                        )
                       }
                     />
                   </TableCell>
 
-                  <TableCell align="center">
+                  <TableCell>
                     <TextField
-                      size="small"
                       type="number"
+                      size="small"
                       value={line.ot15_hours || 0}
-                      onChange={e =>
-                        handleChange(line.id, "ot15_hours", e.target.value)
+                      onChange={(e) =>
+                        handleChange(
+                          line.id,
+                          "ot15_hours",
+                          e.target.value
+                        )
                       }
                     />
                   </TableCell>
 
-                  <TableCell align="center">
+                  <TableCell>
                     <TextField
-                      size="small"
                       type="number"
+                      size="small"
                       value={line.ot20_hours || 0}
-                      onChange={e =>
-                        handleChange(line.id, "ot20_hours", e.target.value)
+                      onChange={(e) =>
+                        handleChange(
+                          line.id,
+                          "ot20_hours",
+                          e.target.value
+                        )
                       }
                     />
                   </TableCell>
 
-                  <TableCell align="center" sx={{ fontWeight: 600 }}>
-                    {totalHours}
-                  </TableCell>
-
-                  <TableCell align="center">
-                    {line.rate_used}
-                  </TableCell>
-
-                  <TableCell align="center">
-                    {savingRow === line.id && (
-                      <Typography variant="caption" color="warning.main">
-                        Saving...
-                      </Typography>
-                    )}
-                    {savedRow === line.id && (
-                      <Typography variant="caption" color="success.main">
-                        Saved ✓
-                      </Typography>
-                    )}
-                  </TableCell>
-
-                  <TableCell align="center">
-                    <Button
-                      variant="outlined"
-                      disabled={!hasHours}
-                      onClick={() =>
-                        navigate(`/payslip/${line.id}`)
-                      }
-                    >
-                      VIEW
-                    </Button>
-                  </TableCell>
+                  <TableCell>{total}</TableCell>
+                  <TableCell>{line.rate_used}</TableCell>
                 </TableRow>
               );
             })}

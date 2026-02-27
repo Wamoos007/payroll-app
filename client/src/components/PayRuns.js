@@ -17,7 +17,7 @@ import {
   TableRow,
   IconButton
 } from "@mui/material";
-
+import { MenuItem } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 
@@ -30,6 +30,8 @@ function PayRuns() {
   const [openAdd, setOpenAdd] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [selected, setSelected] = useState(null);
+  const currentYear = new Date().getFullYear();
+  const [year, setYear] = useState(currentYear);
 
   const [form, setForm] = useState({
     period_start: "",
@@ -39,18 +41,22 @@ function PayRuns() {
 
   /* ================= LOAD RUNS ================= */
   const loadRuns = async () => {
-    try {
-      const res = await axios.get(`${API}/api/payroll/runs`);
-      setRuns(res.data || []);
-    } catch (err) {
-      console.error("Load runs error:", err);
-      setRuns([]);
-    }
-  };
+  try {
+    const res = await axios.get(
+      `${API}/api/payroll/runs`,
+      { params: { year } }
+    );
+
+    setRuns(res.data || []);
+  } catch (err) {
+    console.error("Load runs error:", err);
+    setRuns([]);
+  }
+};
 
   useEffect(() => {
-    loadRuns();
-  }, []);
+  loadRuns();
+}, [year]);
 
   /* ================= ADD RUN ================= */
   const handleAdd = async () => {
@@ -122,6 +128,23 @@ function PayRuns() {
       >
         + Add New Pay Run
       </Button>
+
+      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+  <TextField
+    select
+    label="Year"
+    value={year}
+    onChange={(e) => setYear(e.target.value)}
+    size="small"
+    sx={{ width: 120 }}
+  >
+    {[currentYear - 2, currentYear - 1, currentYear].map((y) => (
+      <MenuItem key={y} value={y}>
+        {y}
+      </MenuItem>
+    ))}
+  </TextField>
+</Box>
 
       <Table>
         <TableHead>

@@ -54,14 +54,20 @@ function calculateTax(grossPay, taxYearId) {
    GET RUNS
 ================================ */
 router.get("/runs", (req, res) => {
-  try {
-    const rows = db.prepare(`
-      SELECT * FROM pay_runs ORDER BY pay_date DESC
-    `).all();
-    res.json(rows);
-  } catch (err) {
-    res.status(500).json({ error: "Database error" });
+  const { year } = req.query;
+
+  let query = "SELECT * FROM pay_runs";
+  let params = [];
+
+  if (year) {
+    query += " WHERE strftime('%Y', pay_date) = ?";
+    params.push(year);
   }
+
+  query += " ORDER BY pay_date DESC";
+
+  const rows = db.prepare(query).all(...params);
+  res.json(rows);
 });
 
 /* ===============================

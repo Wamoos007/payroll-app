@@ -218,6 +218,16 @@ setYtd({
             </Typography>
           </Box>
         </Grid>
+        
+        {/* TOTAL EMPLOYEES */}
+        <Grid item xs={4}>
+          <Box sx={cardStyle}>
+            <Typography>Total Employees</Typography>
+            <Typography variant="h6" fontWeight={700}>
+              {ytd ? monthly.length : 0}
+            </Typography>
+          </Box>
+        </Grid>
 
         <Grid item xs={4}>
           <Box sx={cardStyle}>
@@ -250,7 +260,7 @@ setYtd({
             <XAxis dataKey="name" />
             <YAxis />
             <Tooltip formatter={money} />
-            <Bar dataKey="gross" fill="#1976d2" />
+            <Bar dataKey="gross" fill="#2563eb" radius={[6,6,0,0]} />
           </BarChart>
         </ResponsiveContainer>
       </Box>

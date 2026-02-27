@@ -15,6 +15,13 @@ app.use(cors());
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ limit: "20mb", extended: true }));
 
+/* ===============================
+              EMAIL
+  ===============================*/
+const emailRoutes = require("./routes/email");
+app.use("/api/email", emailRoutes);
+
+
 /* ===========================
    STATIC UPLOADS
 =========================== */
@@ -37,7 +44,6 @@ app.use("/uploads", express.static(uploadsPath));
 const payrollRoutes = require("./routes/payroll");
 const employeeRoutes = require("./routes/employees");
 const companyRoutes = require("./routes/company");
-const emailRoutes = require("./routes/email");
 const ytdRoutes = require("./routes/ytd");
 const backupRoutes = require("./routes/backup");
 const settingsRoutes = require("./routes/settings");

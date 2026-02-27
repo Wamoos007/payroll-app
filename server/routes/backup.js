@@ -31,11 +31,7 @@ router.get("/", (req, res) => {
 
     fs.copyFileSync(DB_PATH, backupFile);
 
-    res.json({
-      success: true,
-      message: "Backup created successfully",
-      file: backupFile
-    });
+    res.download(backupFile);
   } catch (err) {
     console.error("Backup error:", err);
     res.status(500).json({ error: "Backup failed" });

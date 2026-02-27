@@ -1,6 +1,7 @@
 import SignatureCanvas from "react-signature-canvas";
 import { useRef, useEffect, useState } from "react";
 import axios from "axios";
+import Grid from "@mui/material/Grid";
 import {
   Box,
   TextField,
@@ -57,11 +58,13 @@ export default function CompanySettings() {
   };
 
   const handleSwitch = (e) => {
-    setCompany({
-      ...company,
-      smtp_secure: e.target.checked
-    });
-  };
+  const { checked } = e.target;
+
+  setCompany(prev => ({
+    ...prev,
+    smtp_secure: checked
+  }));
+};
 
   const handleSave = async () => {
     try {
@@ -112,16 +115,22 @@ export default function CompanySettings() {
   };
 
   const handleSaveSignature = () => {
-    if (!sigPad.current) return;
+  if (!sigPad.current || sigPad.current.isEmpty()) {
+    alert("Please sign before saving.");
+    return;
+  }
 
-    const canvas = sigPad.current.getCanvas();
-    const signature = canvas.toDataURL("image/png");
+      const signature = sigPad.current
+        .getTrimmedCanvas()
+        .toDataURL("image/png");
 
-    setCompany({
-      ...company,
-      signature_image: signature
-    });
-  };
+      setCompany(prev => ({
+        ...prev,
+        signature_image: signature
+      }));
+
+      alert("Signature saved locally. Click 'Save Company' to persist.");
+    };
 
 //////////////////////////////////////////////////////
 // 🔥 PASTE THE NEW FUNCTION RIGHT HERE 👇
@@ -148,215 +157,95 @@ const handleSettingToggle = async (key, checked) => {
 //////////////////////////////////////////////////////
 
   return (
-    <Box sx={{ p: 3, maxWidth: 800 }}>
-      <Typography variant="h5" sx={{ mb: 3 }}>
-        Settings
+  <Box sx={{ p: 3, maxWidth: 1000 }}>
+    <Typography variant="h5" sx={{ mb: 4 }}>
+      System Settings
+    </Typography>
+
+    <Paper sx={{ p: 3, mb: 4 }}>
+      <Typography variant="h6" sx={{ mb: 2 }}>
+        Payroll Settings
       </Typography>
 
-      <Paper sx={{ mb: 3 }}>
-        <Tabs value={tab} onChange={(e, newValue) => setTab(newValue)}>
-          <Tab label="General Settings" />
-          <Tab label="Company Settings" />
-        </Tabs>
-      </Paper>
-
-      {/* ================= GENERAL SETTINGS TAB ================= */}
-      {tab === 0 && (
-        <>
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            Payroll System Settings
-          </Typography>
-
+      <Grid container spacing={2}>
+        <Grid item xs={12} md={6}>
           <FormControlLabel
-  control={
-    <Switch
-      checked={settings.enable_paye === "1"}
-      onChange={(e) =>
-        handleSettingToggle("enable_paye", e.target.checked)
-      }
-    />
-  }
-  label="Enable PAYE Calculation"
-/>
+            control={
+              <Switch
+                checked={settings.enable_paye === "1"}
+                onChange={(e) =>
+                  handleSettingToggle("enable_paye", e.target.checked)
+                }
+              />
+            }
+            label="Enable PAYE"
+          />
+        </Grid>
 
+        <Grid item xs={12} md={6}>
           <FormControlLabel
             control={
               <Switch
                 checked={settings.enable_uif === "1"}
-                onChange={(e) => handleSettingToggle("enable_uif", e.target.checked)}
+                onChange={(e) =>
+                  handleSettingToggle("enable_uif", e.target.checked)
+                }
               />
             }
-            label="Enable UIF Calculation"
+            label="Enable UIF"
           />
+        </Grid>
+      </Grid>
+    </Paper>
 
-          <Divider sx={{ my: 3 }} />
+    <Paper sx={{ p: 3, mb: 4 }}>
+      <Typography variant="h6" sx={{ mb: 2 }}>
+        Company Information
+      </Typography>
 
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            Appearance
-          </Typography>
+      <Grid container spacing={2}>
+        <Grid item xs={12} md={6}>
+          <TextField fullWidth label="Company Name" name="name"
+            value={company.name || ""} onChange={handleChange} />
+        </Grid>
 
-          <FormControlLabel
-            control={
-              <Switch
-                checked={settings.dark_mode === "1"}
-                onChange={() => handleSettingToggle("dark_mode")}
-              />
-            }
-            label="Dark Mode"
-          />
-
-          <Divider sx={{ my: 3 }} />
-
-          <Typography variant="body2" color="text.secondary">
-            Note: These settings will be connected to the database in the next step.
-          </Typography>
-        </>
-      )}
-
-      {/* ================= COMPANY SETTINGS TAB ================= */}
-      {tab === 1 && (
-        <>
-          <TextField
-            fullWidth
-            label="Company Name"
-            name="name"
-            value={company.name || ""}
-            onChange={handleChange}
-            margin="normal"
-          />
-
-          <TextField
-            fullWidth
-            label="Registration Number"
+        <Grid item xs={12} md={6}>
+          <TextField fullWidth label="Registration Number"
             name="registration_number"
             value={company.registration_number || ""}
-            onChange={handleChange}
-            margin="normal"
-          />
+            onChange={handleChange} />
+        </Grid>
 
-          <TextField
-            fullWidth
-            label="Address"
+        <Grid item xs={12}>
+          <TextField fullWidth label="Address"
             name="address"
             value={company.address || ""}
-            onChange={handleChange}
-            margin="normal"
-          />
+            onChange={handleChange} />
+        </Grid>
+      </Grid>
+    </Paper>
 
-          <TextField
-            fullWidth
-            label="Email"
-            name="contact_email"
-            value={company.contact_email || ""}
-            onChange={handleChange}
-            margin="normal"
-          />
+    <Paper sx={{ p: 3, mb: 4 }}>
+      <Typography variant="h6" sx={{ mb: 2 }}>
+        SMTP Configuration
+      </Typography>
 
-          <TextField
-            fullWidth
-            label="Contact Number"
-            name="contact_number"
-            value={company.contact_number || ""}
-            onChange={handleChange}
-            margin="normal"
-          />
-
-          <Divider sx={{ my: 3 }} />
-
-          <Typography variant="subtitle1">Company Logo</Typography>
-
-          <Button variant="outlined" component="label" sx={{ mt: 1 }}>
-            Upload Logo
-            <input type="file" hidden onChange={handleLogoUpload} />
-          </Button>
-
-          {company.logo_path && (
-            <Box sx={{ mt: 2 }}>
-              <img
-                src={`${API}${company.logo_path}`}
-                alt="Logo"
-                crossOrigin="anonymous"
-                style={{ height: 80, objectFit: "contain" }}
-              />
-            </Box>
-          )}
-
-          <Divider sx={{ my: 3 }} />
-
-          <Typography variant="subtitle1">Signature</Typography>
-
-          <Box sx={{ border: "1px solid #ccc", borderRadius: 2, mt: 2 }}>
-            <SignatureCanvas
-              ref={sigPad}
-              penColor="black"
-              canvasProps={{
-                width: 500,
-                height: 150,
-                style: { display: "block" }
-              }}
-            />
-          </Box>
-
-          <Box sx={{ mt: 2, display: "flex", gap: 2 }}>
-            <Button onClick={() => sigPad.current.clear()}>
-              Clear
-            </Button>
-
-            <Button variant="contained" onClick={handleSaveSignature}>
-              Save Signature
-            </Button>
-          </Box>
-
-          <Divider sx={{ my: 3 }} />
-
-          <Typography variant="h6">SMTP Settings</Typography>
-
-          <TextField
-            fullWidth
-            label="SMTP Host"
+      <Grid container spacing={2}>
+        <Grid item xs={12} md={6}>
+          <TextField fullWidth label="SMTP Host"
             name="smtp_host"
             value={company.smtp_host || ""}
-            onChange={handleChange}
-            margin="normal"
-          />
+            onChange={handleChange} />
+        </Grid>
 
-          <TextField
-            fullWidth
-            label="SMTP Port"
+        <Grid item xs={12} md={3}>
+          <TextField fullWidth label="Port"
             name="smtp_port"
             value={company.smtp_port || ""}
-            onChange={handleChange}
-            margin="normal"
-          />
+            onChange={handleChange} />
+        </Grid>
 
-          <TextField
-            fullWidth
-            label="SMTP Username"
-            name="smtp_user"
-            value={company.smtp_user || ""}
-            onChange={handleChange}
-            margin="normal"
-          />
-
-          <TextField
-            fullWidth
-            label="SMTP Password"
-            name="smtp_pass"
-            type="password"
-            value={company.smtp_pass || ""}
-            onChange={handleChange}
-            margin="normal"
-          />
-
-          <TextField
-            fullWidth
-            label="From Email"
-            name="smtp_from"
-            value={company.smtp_from || ""}
-            onChange={handleChange}
-            margin="normal"
-          />
-
+        <Grid item xs={12} md={3}>
           <FormControlLabel
             control={
               <Switch
@@ -364,32 +253,36 @@ const handleSettingToggle = async (key, checked) => {
                 onChange={handleSwitch}
               />
             }
-            label="Use SSL (Secure Connection)"
+            label="SSL"
           />
+        </Grid>
+      </Grid>
+    </Paper>
 
-          <Divider sx={{ my: 3 }} />
+    <Paper sx={{ p: 3, mb: 4 }}>
+      <Typography variant="h6" sx={{ mb: 2 }}>
+        Signature
+      </Typography>
 
-          <Typography variant="subtitle1">Send Test Email</Typography>
+      <Box sx={{ border: "1px solid #ddd", borderRadius: 2 }}>
+        <SignatureCanvas
+          ref={sigPad}
+          penColor="black"
+          canvasProps={{
+            width: 900,
+            height: 150,
+            style: { width: "100%" }
+          }}
+        />
+      </Box>
+    </Paper>
 
-          <TextField
-            fullWidth
-            label="Test Email Address"
-            value={testEmail}
-            onChange={(e) => setTestEmail(e.target.value)}
-            margin="normal"
-          />
-
-          <Button variant="outlined" onClick={handleTestEmail}>
-            Send Test Email
-          </Button>
-
-          <Box sx={{ mt: 4 }}>
-            <Button variant="contained" onClick={handleSave}>
-              Save Company
-            </Button>
-          </Box>
-        </>
-      )}
+    <Box sx={{ textAlign: "right" }}>
+      <Button variant="contained" onClick={handleSave}>
+        Save All Settings
+      </Button>
     </Box>
+  </Box>
+
   );
 }

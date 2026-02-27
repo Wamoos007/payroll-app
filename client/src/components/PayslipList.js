@@ -31,30 +31,31 @@ function PayslipList() {
   const navigate = useNavigate();
 
   const [runs, setRuns] = useState([]);
-  const [selectedRun, setSelectedRun] = useState("");
+  const [selectedRun, setSelectedRun] = useState(null);
   const [lines, setLines] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState([]);
   const [sending, setSending] = useState(false);
   const [activeSendId, setActiveSendId] = useState(null);
 
-  /* ===============================
-     LOAD PAY RUNS
-  =============================== */
+  /* ================= LOAD PAY RUNS ================= */
   useEffect(() => {
-    axios.get(`${API}/api/payroll/runs`).then(res => {
-      setRuns(res.data);
-      if (res.data.length > 0) {
-        setSelectedRun(res.data[0].id);
-      }
-    });
+    axios.get(`${API}/api/payroll/runs`)
+      .then(res => {
+        setRuns(res.data || []);
+      })
+      .catch(err => {
+        console.error("Failed to load runs:", err);
+      });
   }, []);
 
-  /* ===============================
-     LOAD PAYROLL LINES
-  =============================== */
+  /* ================= LOAD PAYROLL LINES ================= */
   useEffect(() => {
-    if (!selectedRun) return;
+    if (!selectedRun) {
+      setLines([]);
+      setSelected([]);
+      return;
+    }
 
     setLoading(true);
     setSelected([]);
@@ -62,7 +63,7 @@ function PayslipList() {
     axios
       .get(`${API}/api/payroll/lines/${selectedRun}`)
       .then(res => {
-        const sorted = res.data.sort((a, b) =>
+        const sorted = (res.data || []).sort((a, b) =>
           a.employee_code.localeCompare(b.employee_code)
         );
         setLines(sorted);
@@ -74,10 +75,7 @@ function PayslipList() {
       .finally(() => setLoading(false));
   }, [selectedRun]);
 
-  /* ===============================
-     SELECTION LOGIC
-  =============================== */
-
+  /* ================= SELECTION LOGIC ================= */
   const handleSelectAll = e => {
     if (e.target.checked) {
       setSelected(lines.map(l => l.id));
@@ -94,109 +92,124 @@ function PayslipList() {
     }
   };
 
-  /* ===============================
-     SEND SELECTED EMAILS
-  =============================== */
-
+  /* ================= SEND SELECTED EMAILS ================= */
   const handleSendSelected = async () => {
-  if (selected.length === 0) {
-    alert("Please select at least one payslip.");
-    return;
-  }
-
-  setSending(true);
-
-  try {
-    for (const id of selected) {
-      setActiveSendId(id);
-
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      const element = document.getElementById("payslip-content");
-
-      if (!element) {
-        console.error("Payslip content not found");
-        continue;
-      }
-
-      const pdfBlob = await html2pdf()
-        .set({
-          margin: 10,
-          image: { type: "jpeg", quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true },
-          jsPDF: {
-            unit: "mm",
-            format: "a4",
-            orientation: "portrait"
-          }
-        })
-        .from(element)
-        .outputPdf("blob");
-
-      const arrayBuffer = await pdfBlob.arrayBuffer();
-      const base64 = btoa(
-        new Uint8Array(arrayBuffer)
-          .reduce((data, byte) => data + String.fromCharCode(byte), "")
-      );
-
-      const line = lines.find(l => l.id === id);
-
-      if (!line.email) {
-        alert(`No email set for ${line.full_name}`);
-        continue;
-      }
-
-      await axios.post(`${API}/api/email/send-payslip`, {
-        email: line.email,
-        full_name: line.full_name,
-        pdfBase64: base64
-      });
+    if (selected.length === 0) {
+      alert("Please select at least one payslip.");
+      return;
     }
 
-    alert("Payslips sent successfully!");
-    setSelected([]);
-  } catch (err) {
-    alert(
-      "Email sending failed: " +
-        (err.response?.data?.error || err.message)
-    );
-  }
+    setSending(true);
 
-  setActiveSendId(null);
-  setSending(false);
-};
+    try {
+      for (const id of selected) {
+        setActiveSendId(id);
+
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        const element = document.getElementById("payslip-content");
+
+        if (!element) continue;
+
+        const pdfBlob = await html2pdf()
+          .set({
+            margin: 10,
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+          })
+          .from(element)
+          .outputPdf("blob");
+
+        const arrayBuffer = await pdfBlob.arrayBuffer();
+        const base64 = btoa(
+          new Uint8Array(arrayBuffer)
+            .reduce((data, byte) => data + String.fromCharCode(byte), "")
+        );
+
+        const line = lines.find(l => l.id === id);
+
+        if (!line.email) continue;
+
+        await axios.post(`${API}/api/email/send-payslip`, {
+          email: line.email,
+          full_name: line.full_name,
+          pdfBase64: base64
+        });
+      }
+
+      alert("Payslips sent successfully!");
+      setSelected([]);
+    } catch (err) {
+      alert(
+        "Email sending failed: " +
+        (err.response?.data?.error || err.message)
+      );
+    }
+
+    setActiveSendId(null);
+    setSending(false);
+  };
 
   return (
-    <Box>
+    <Box sx={{ p: 3 }}>
       <Typography variant="h5" mb={3}>
         Payslips
       </Typography>
 
       {/* PAY RUN SELECTOR */}
-      <Select
-        value={selectedRun}
-        onChange={e => setSelectedRun(e.target.value)}
-        sx={{ mb: 4, minWidth: 240 }}
-      >
-        {runs.map(run => (
-          <MenuItem key={run.id} value={run.id}>
-            {run.pay_date}
+      <Box sx={{ mb: 3 }}>
+        <Select
+          value={selectedRun || ""}
+          displayEmpty
+          onChange={e => setSelectedRun(e.target.value || null)}
+          sx={{ minWidth: 240 }}
+        >
+          <MenuItem value="">
+            <em>Select Pay Run</em>
           </MenuItem>
-        ))}
-      </Select>
 
-      {/* SEND BUTTON */}
+          {runs.map(run => (
+            <MenuItem key={run.id} value={run.id}>
+              {run.pay_date}
+            </MenuItem>
+          ))}
+        </Select>
+      </Box>
+
+      {/* ACTION BUTTON */}
       <Box sx={{ mb: 3 }}>
         <Button
           variant="contained"
-          disabled={selected.length === 0}
+          disabled={!selectedRun || selected.length === 0 || sending}
           onClick={handleSendSelected}
         >
-          Send Selected ({selected.length})
+          {sending
+            ? "Sending..."
+            : `Send Selected (${selected.length})`}
         </Button>
       </Box>
 
-      {loading ? (
+      {/* DEFAULT LANDING STATE */}
+      {!selectedRun ? (
+        <Box
+          sx={{
+            mt: 5,
+            p: 5,
+            backgroundColor: "#ffffff",
+            borderRadius: 2,
+            textAlign: "center",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.08)"
+          }}
+        >
+          <Typography variant="h6" sx={{ mb: 1 }}>
+            No Pay Run Selected
+          </Typography>
+
+          <Typography color="text.secondary">
+            Please select a pay run to view and manage payslips.
+          </Typography>
+        </Box>
+      ) : loading ? (
         <CircularProgress />
       ) : (
         <Table>
@@ -275,17 +288,14 @@ function PayslipList() {
             })}
           </TableBody>
         </Table>
-        
-        )}
+      )}
 
-    {/* HIDDEN RENDERER FOR PDF GENERATION */}
-    {activeSendId && (
-      <div style={{ position: "fixed", left: "-9999px", top: 0 }}>
-        <Payslip lineId={activeSendId} />
-      </div>
-    )}
-
-    
+      {/* HIDDEN PDF RENDERER */}
+      {activeSendId && (
+        <div style={{ position: "fixed", left: "-9999px", top: 0 }}>
+          <Payslip lineId={activeSendId} />
+        </div>
+      )}
     </Box>
   );
 }
