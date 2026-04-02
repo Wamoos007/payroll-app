@@ -3,6 +3,7 @@ const path = require("path");
 const { migrate } = require("@blackglory/better-sqlite3-migrations");
 const fs = require("fs");
 const os = require("os");
+const seedTaxYears = require("./seedTaxYears");
 
 /* ---------------------------
    RESOLVE DATABASE PATH
@@ -42,6 +43,12 @@ if (fs.existsSync(migrationsDir)) {
 
   migrate(db, migrationFiles);
 }
+
+/* ---------------------------
+   SEED TAX YEARS
+---------------------------- */
+
+seedTaxYears(db);
 
 /* ---------------------------
    SAFETY SETTINGS TABLE
