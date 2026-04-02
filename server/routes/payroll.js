@@ -2,6 +2,17 @@ const express = require("express");
 const router = express.Router();
 const db = require("../db");
 
+function getTaxYearForDate(dateValue) {
+  return db.prepare(`
+    SELECT id, label, start_date, end_date, primary_rebate
+    FROM tax_years
+    WHERE start_date <= ?
+      AND end_date >= ?
+    ORDER BY start_date DESC
+    LIMIT 1
+  `).get(dateValue, dateValue);
+}
+
 function calculateTax(grossPay, taxYearId) {
 
   console.log("Gross received:", grossPay);
@@ -78,17 +89,12 @@ router.post("/runs", (req, res) => {
 
   try {
     // Find correct tax year based on pay_date
-    const taxYear = db.prepare(`
-      SELECT id
-      FROM tax_years
-      WHERE start_date <= ?
-      AND end_date >= ?
-      AND locked = 1
-      LIMIT 1
-    `).get(pay_date, pay_date);
+    const taxYear = getTaxYearForDate(pay_date);
 
     if (!taxYear) {
-      return res.status(400).json({ error: "No locked tax year configured for this date" });
+      return res.status(400).json({
+        error: "No tax year configured for this date"
+      });
     }
 
     // Insert pay run WITH tax_year_id
@@ -450,9 +456,10 @@ router.get("/paye-table", (req, res) => {
 router.get("/tax-year/active", (req, res) => {
   try {
     const year = db.prepare(`
-      SELECT *
+      SELECT id, label, frequency, start_date, end_date, primary_rebate
       FROM tax_years
-      WHERE locked = 1
+      WHERE start_date <= date('now', 'localtime')
+        AND end_date >= date('now', 'localtime')
       ORDER BY start_date DESC
       LIMIT 1
     `).get();

@@ -47,6 +47,3 @@ CREATE TABLE IF NOT EXISTS payslip_deductions (
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (payroll_line_id) REFERENCES payroll_lines(id)
 );
-CREATE TABLE IF NOT EXISTS locked_years (
-  year INTEGER PRIMARY KEY
-);

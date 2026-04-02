@@ -129,6 +129,12 @@ app.whenReady().then(() => {
     backupDatabase();
     autoUpdater.checkForUpdates();
   }
+}).catch(err => {
+  log.error("App startup failed:", err);
+});
+
+process.on("unhandledRejection", err => {
+  log.error("Unhandled promise rejection:", err);
 });
 
 app.on("window-all-closed", () => {

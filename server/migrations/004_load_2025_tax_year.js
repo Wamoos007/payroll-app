@@ -2,9 +2,9 @@ exports.version = 4;
 
 exports.up = `
 INSERT INTO tax_years
-(label, frequency, start_date, end_date, primary_rebate, locked)
+(label, frequency, start_date, end_date, primary_rebate)
 VALUES
-('2025/2026', 'fortnightly', '2025-03-01', '2026-02-28', 17235, 1);
+('2025/2026', 'fortnightly', '2025-03-01', '2026-02-28', 17235);
 
 INSERT INTO tax_brackets (tax_year_id, min_income, max_income, base_tax, marginal_rate)
 SELECT id, 0, 237100, 0, 0.18 FROM tax_years WHERE label = '2025/2026';
