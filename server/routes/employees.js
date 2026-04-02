@@ -30,15 +30,28 @@ router.post("/", (req, res) => {
   const { full_name, employee_code, id_number, hourly_rate, email } = req.body;
 
   try {
+    if (!full_name || !employee_code || hourly_rate === undefined || hourly_rate === "") {
+      return res.status(400).json({
+        error: "Full name, employee code, and hourly rate are required."
+      });
+    }
+
+    const numericRate = Number(hourly_rate);
+    if (Number.isNaN(numericRate) || numericRate < 0) {
+      return res.status(400).json({
+        error: "Hourly rate must be a valid positive number."
+      });
+    }
+
     const result = db.prepare(`
       INSERT INTO employees
       (full_name, employee_code, id_number, hourly_rate, email, active)
       VALUES (?, ?, ?, ?, ?, 1)
     `).run(
-      full_name,
-      employee_code,
-      id_number,
-      hourly_rate,
+      full_name.trim(),
+      employee_code.trim(),
+      id_number?.trim() || "",
+      numericRate,
       email || null
     );
 
@@ -55,6 +68,19 @@ router.put("/:id", (req, res) => {
   const { full_name, employee_code, id_number, hourly_rate, email } = req.body;
 
   try {
+    if (!full_name || !employee_code || hourly_rate === undefined || hourly_rate === "") {
+      return res.status(400).json({
+        error: "Full name, employee code, and hourly rate are required."
+      });
+    }
+
+    const numericRate = Number(hourly_rate);
+    if (Number.isNaN(numericRate) || numericRate < 0) {
+      return res.status(400).json({
+        error: "Hourly rate must be a valid positive number."
+      });
+    }
+
     db.prepare(`
       UPDATE employees
       SET full_name = ?,
@@ -64,10 +90,10 @@ router.put("/:id", (req, res) => {
           email = ?
       WHERE id = ?
     `).run(
-      full_name,
-      employee_code,
-      id_number,
-      hourly_rate,
+      full_name.trim(),
+      employee_code.trim(),
+      id_number?.trim() || "",
+      numericRate,
       email || null,
       id
     );

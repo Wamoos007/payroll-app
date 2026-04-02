@@ -1,6 +1,6 @@
 {
   "name": "payroll-app",
-  "version": "2.4.7",
+  "version": "2.4.8",
   "description": "Payroll Desktop Application",
   "main": "main.js",
   "author": "Waleed Moos",
@@ -36,7 +36,6 @@
     "electron": "25.9.8",
     "electron-builder": "^24.0.0",
     "electron-rebuild": "^3.2.9",
-    "dmg-license": "^1.0.11",
     "wait-on": "^8.0.5"
   },
   "build": {
