@@ -13,6 +13,10 @@ function getTaxYearForDate(dateValue) {
   `).get(dateValue, dateValue);
 }
 
+function isIsoDate(value) {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
 function calculateTax(grossPay, taxYearId) {
 
   console.log("Gross received:", grossPay);
@@ -88,6 +92,30 @@ router.post("/runs", (req, res) => {
   const { period_start, period_end, pay_date } = req.body;
 
   try {
+    if (!period_start || !period_end || !pay_date) {
+      return res.status(400).json({
+        error: "All pay run dates are required"
+      });
+    }
+
+    if (!isIsoDate(period_start) || !isIsoDate(period_end) || !isIsoDate(pay_date)) {
+      return res.status(400).json({
+        error: "Dates must use the YYYY-MM-DD format"
+      });
+    }
+
+    if (period_start > period_end) {
+      return res.status(400).json({
+        error: "Period start must be before period end"
+      });
+    }
+
+    if (pay_date < period_start || pay_date > period_end) {
+      return res.status(400).json({
+        error: "Pay date must fall within the pay period"
+      });
+    }
+
     // Find correct tax year based on pay_date
     const taxYear = getTaxYearForDate(pay_date);
 
@@ -122,7 +150,11 @@ router.post("/runs", (req, res) => {
     res.json({ id: runId });
 
   } catch (err) {
-    res.status(500).json({ error: "Create failed" });
+    console.error("Create run failed:", err);
+    res.status(500).json({
+      error: "Create failed",
+      details: err.message
+    });
   }
 });
 

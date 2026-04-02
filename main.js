@@ -82,10 +82,23 @@ autoUpdater.on("update-downloaded", () => {
    START EXPRESS SERVER
 ---------------------------- */
 
-function startServer() {
+async function startServer() {
   const serverPath = path.join(__dirname, "server", "app.js");
+  const serverPort = Number(process.env.SERVER_PORT || 3001);
   log.info("Loading server from:", serverPath);
-  require(serverPath);
+
+  const { startServer: bootServer } = require(serverPath);
+
+  try {
+    await bootServer(serverPort);
+  } catch (err) {
+    if (err.code === "EADDRINUSE") {
+      log.warn(`Port ${serverPort} already in use. Reusing existing server.`);
+      return;
+    }
+
+    throw err;
+  }
 }
 
 /* ---------------------------
@@ -105,7 +118,7 @@ function createWindow() {
   mainWindow.setMenu(null);
 
   if (!app.isPackaged) {
-    mainWindow.loadURL("http://localhost:3000");
+    mainWindow.loadURL(process.env.CLIENT_DEV_URL || "http://localhost:3000");
   } else {
     mainWindow.loadFile(
       path.join(__dirname, "client", "build", "index.html")
@@ -117,12 +130,12 @@ function createWindow() {
    APP READY
 ---------------------------- */
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
 
   // Expose correct userData path to backend
   process.env.USER_DATA_PATH = app.getPath("userData");
 
-  startServer();
+  await startServer();
   createWindow();
 
   if (app.isPackaged) {

@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import axios from "axios";
+import API from "../api";
 import {
   Box,
   Typography,
-  Grid,
   MenuItem,
   Select,
   Table,
@@ -12,8 +12,6 @@ import {
   TableCell,
   TableBody
 } from "@mui/material";
-
-const API = "http://localhost:3001";
 
 const money = v =>
   new Intl.NumberFormat("en-ZA", {
@@ -27,11 +25,7 @@ function YTD() {
   const [year, setYear] = useState(currentYear);
   const [data, setData] = useState([]);
 
-  useEffect(() => {
-    loadData();
-  }, [year]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const res = await axios.get(
         `${API}/api/ytd/${year}`
@@ -42,7 +36,11 @@ function YTD() {
       console.error("YTD load error:", err);
       setData([]);
     }
-  };
+  }, [year]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   return (
     <Box>

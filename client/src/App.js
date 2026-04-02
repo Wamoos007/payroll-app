@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Routes, Route, Link, useLocation } from "react-router-dom";
 import axios from "axios";
+import API from "./api";
 import SARS from "./components/SARS";
 import {
   Box,
@@ -28,7 +29,6 @@ import YTD from "./components/YTD";
 import CompanySettings from "./components/CompanySettings";
 
 const drawerWidth = 240;
-const API = "http://localhost:3001";
 
 /* ===============================
    PAGE TITLE
@@ -63,7 +63,7 @@ function PageTitle() {
    APP
 ================================= */
 function App() {
-  const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [updateAvailable] = useState(false);
   const [version, setVersion] = useState("");
   const [updateProgress, setUpdateProgress] = useState(null);
 

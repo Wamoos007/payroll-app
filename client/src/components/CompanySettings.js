@@ -1,29 +1,22 @@
 import SignatureCanvas from "react-signature-canvas";
 import { useRef, useEffect, useState } from "react";
 import axios from "axios";
+import API from "../api";
 import Grid from "@mui/material/Grid";
 import {
   Box,
   TextField,
   Button,
   Typography,
-  Divider,
   FormControlLabel,
   Switch,
-  Tabs,
-  Tab,
   Paper
 } from "@mui/material";
-
-const API = "http://localhost:3001";
 
 export default function CompanySettings() {
   const sigPad = useRef(null);
 
-  const [tab, setTab] = useState(0);
-
   const [company, setCompany] = useState({});
-  const [testEmail, setTestEmail] = useState("");
 
   // General Settings (temporary local state)
   const [settings, setSettings] = useState({});
@@ -75,62 +68,6 @@ export default function CompanySettings() {
       alert("Save failed");
     }
   };
-
-  const handleLogoUpload = async (e) => {
-    const formData = new FormData();
-    formData.append("logo", e.target.files[0]);
-
-    try {
-      const res = await axios.post(
-        `${API}/api/company/upload-logo`,
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
-
-      setCompany(prev => ({
-        ...prev,
-        logo_path: res.data.logo_path
-      }));
-    } catch (err) {
-      console.error("Logo upload error:", err);
-    }
-  };
-
-  const handleTestEmail = async () => {
-    if (!testEmail) {
-      alert("Please enter a test email address.");
-      return;
-    }
-
-    try {
-      const res = await axios.post(
-        `${API}/api/email/test`,
-        { testEmail }
-      );
-
-      alert(`Email sent successfully!\nMessage ID: ${res.data.messageId}`);
-    } catch (err) {
-      alert("Test failed:\n" + (err.response?.data?.details || err.message));
-    }
-  };
-
-  const handleSaveSignature = () => {
-  if (!sigPad.current || sigPad.current.isEmpty()) {
-    alert("Please sign before saving.");
-    return;
-  }
-
-      const signature = sigPad.current
-        .getTrimmedCanvas()
-        .toDataURL("image/png");
-
-      setCompany(prev => ({
-        ...prev,
-        signature_image: signature
-      }));
-
-      alert("Signature saved locally. Click 'Save Company' to persist.");
-    };
 
 //////////////////////////////////////////////////////
 // 🔥 PASTE THE NEW FUNCTION RIGHT HERE 👇

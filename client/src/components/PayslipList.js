@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import html2pdf from "html2pdf.js";
 import { useNavigate } from "react-router-dom";
+import API from "../api";
 import {
   Box,
   Typography,
@@ -17,8 +18,6 @@ import {
   Button,
   Checkbox
 } from "@mui/material";
-
-const API = "http://localhost:3001";
 
 const money = v =>
   new Intl.NumberFormat("en-ZA", {

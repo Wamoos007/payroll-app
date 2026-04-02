@@ -4,6 +4,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import BlockIcon from "@mui/icons-material/Block";
 import { MenuItem } from "@mui/material";
 import axios from "axios";
+import API from "../api";
 import {
   Box,
   Typography,
@@ -20,12 +21,14 @@ import {
   DialogActions
 } from "@mui/material";
 
-const API = "http://localhost:3001";
+function getApiErrorMessage(err, fallback) {
+  return err.response?.data?.error || err.response?.data?.message || err.message || fallback;
+}
+
 function Employees() {
   const [employees, setEmployees] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
-  const [importing, setImporting] = useState(false);
   const [filter, setFilter] = useState("active");
   const [form, setForm] = useState({
     id: null,
@@ -69,6 +72,11 @@ function Employees() {
 
   const handleSave = async () => {
     try {
+      if (!form.full_name || !form.employee_code || !form.hourly_rate) {
+        alert("Please complete the employee name, code, and hourly rate.");
+        return;
+      }
+
       if (isEdit) {
         await axios.put(`${API}/api/employees/${form.id}`, form);
       } else {
@@ -79,6 +87,12 @@ function Employees() {
       loadEmployees();
     } catch (err) {
       console.error("Save employee error:", err);
+      alert(
+        `Failed to save employee.\n${getApiErrorMessage(
+          err,
+          "Please check the employee details and try again."
+        )}`
+      );
     }
   };
 
@@ -101,38 +115,33 @@ function Employees() {
   };
 
   const handleImport = async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
+    const file = e.target.files[0];
+    if (!file) return;
 
-  const formData = new FormData();
-  formData.append("file", file);
+    const formData = new FormData();
+    formData.append("file", file);
 
-  setImporting(true);
+    try {
+      const res = await axios.post(
+        `${API}/api/employees/import`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" }
+        }
+      );
 
-  try {
-    const res = await axios.post(
-      `${API}/api/employees/import`,
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" }
-      }
-    );
+      alert(
+        `Import Complete\nInserted: ${res.data.inserted}\nSkipped: ${res.data.skipped}`
+      );
 
-    alert(
-      `Import Complete\nInserted: ${res.data.inserted}\nSkipped: ${res.data.skipped}`
-    );
-
-    window.location.reload(); // reload employee list
-
-  } catch (err) {
-    alert(
-      "Import failed: " +
-      (err.response?.data?.error || err.message)
-    );
-  }
-
-  setImporting(false);
-};
+      window.location.reload(); // reload employee list
+    } catch (err) {
+      alert(
+        "Import failed: " +
+        (err.response?.data?.error || err.message)
+      );
+    }
+  };
 
   return (
     <Box sx={{ p: 3 }}>

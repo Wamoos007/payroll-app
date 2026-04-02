@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import API from "../api";
 import {
   Box,
   Typography,
@@ -14,8 +15,6 @@ import {
   Paper,
   Divider
 } from "@mui/material";
-
-const API = "http://localhost:3001";
 
 const money = v =>
   new Intl.NumberFormat("en-ZA", {

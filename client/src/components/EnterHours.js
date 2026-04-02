@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import html2pdf from "html2pdf.js";
 import axios from "axios";
+import API from "../api";
 import {
   Box,
   Typography,
@@ -12,11 +13,8 @@ import {
   TableRow,
   TableCell,
   TableBody,
-  TextField,
-  Divider
+  TextField
 } from "@mui/material";
-
-const API = "http://localhost:3001";
 
 function EnterHours() {
   const [runs, setRuns] = useState([]);

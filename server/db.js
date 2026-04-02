@@ -9,10 +9,28 @@ const seedTaxYears = require("./seedTaxYears");
    RESOLVE DATABASE PATH
 ---------------------------- */
 
+function getDefaultDataPath() {
+  if (process.platform === "darwin") {
+    return path.join(
+      os.homedir(),
+      "Library",
+      "Application Support",
+      "payroll-app"
+    );
+  }
+
+  if (process.platform === "win32") {
+    return path.join(
+      process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"),
+      "payroll-app"
+    );
+  }
+
+  return path.join(os.homedir(), ".config", "payroll-app");
+}
+
 // Use Electron userData path if available
-const appDataPath =
-  process.env.USER_DATA_PATH ||
-  path.join(os.homedir(), "AppData", "Roaming", "payroll-app");
+const appDataPath = process.env.USER_DATA_PATH || getDefaultDataPath();
 
 // Ensure directory exists
 if (!fs.existsSync(appDataPath)) {

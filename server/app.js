@@ -3,9 +3,7 @@ const path = require("path");
 const cors = require("cors");
 const fs = require("fs");
 
-const app = express();   // ✅ MOVE THIS TO THE TOP
-
-const isDev = process.env.NODE_ENV !== "production";
+const app = express();
 
 /* ===========================
    MIDDLEWARE
@@ -85,8 +83,22 @@ if (process.env.NODE_ENV === "production") {
    START SERVER
 =========================== */
 
-const PORT = 3001;
+function startServer(port = Number(process.env.PORT || 3001)) {
+  return new Promise((resolve, reject) => {
+    const server = app.listen(port, () => {
+      console.log(`Server running at http://localhost:${port}`);
+      resolve(server);
+    });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
-});
+    server.on("error", reject);
+  });
+}
+
+if (require.main === module) {
+  startServer().catch(err => {
+    console.error("Failed to start server:", err);
+    process.exit(1);
+  });
+}
+
+module.exports = { app, startServer };

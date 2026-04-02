@@ -1,14 +1,15 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import axios from "axios";
+import API from "../api";
 import {
   Box,
   Typography,
   Button,
   Grid,
   MenuItem,
-  Select
+  Select,
+  Paper
 } from "@mui/material";
-
 import {
   BarChart,
   Bar,
@@ -19,8 +20,6 @@ import {
   CartesianGrid
 } from "recharts";
 
-const API = "http://localhost:3001";
-
 const money = v =>
   new Intl.NumberFormat("en-ZA", {
     style: "currency",
@@ -30,99 +29,82 @@ const money = v =>
 function Dashboard() {
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
-  const [ytd, setYtd] = useState(null);
+  const [ytd, setYtd] = useState({
+    employeeCount: 0,
+    totalGross: 0,
+    totalUif: 0,
+    totalNet: 0
+  });
   const [monthly, setMonthly] = useState([]);
   const fileInputRef = useRef();
 
-  useEffect(() => {
-    loadData();
-  }, [year]);
+  const loadData = useCallback(async () => {
+    try {
+      const ytdRes = await axios.get(`${API}/api/ytd/${year}`);
+      const employees = Array.isArray(ytdRes.data) ? ytdRes.data : [];
 
-  /* ================================
-     SAFE DATA LOADER (FIXED)
-  ================================= */
-  const loadData = async () => {
-  try {
-    /* -------- YTD -------- */
-    const ytdRes = await axios.get(`${API}/api/ytd/${year}`);
-
-const employees = Array.isArray(ytdRes.data)
-  ? ytdRes.data
-  : [];
-
-const totalGross = employees.reduce(
-  (sum, e) => sum + Number(e.totalGross || 0),
-  0
-);
-
-const totalUif = employees.reduce(
-  (sum, e) => sum + Number(e.totalUif || 0),
-  0
-);
-
-const totalNet = employees.reduce(
-  (sum, e) => sum + Number(e.totalNet || 0),
-  0
-);
-
-setYtd({
-  totalGross,
-  totalUif,
-  totalNet
-});
-
-    /* -------- MONTHLY -------- */
-    const monthlyRes = await axios.get(
-      `${API}/api/payroll/monthly-summary/${year}`
-    );
-
-    const monthlyData = Array.isArray(monthlyRes.data)
-      ? monthlyRes.data
-      : [];
-
-    const formattedMonths = Array.from({ length: 12 }, (_, i) => {
-      const monthNumber = String(i + 1).padStart(2, "0");
-
-      const found = monthlyData.find(
-        m => m.month === monthNumber
+      const totals = employees.reduce(
+        (acc, employee) => {
+          acc.totalGross += Number(employee.totalGross || 0);
+          acc.totalUif += Number(employee.totalUif || 0);
+          acc.totalNet += Number(employee.totalNet || 0);
+          return acc;
+        },
+        {
+          totalGross: 0,
+          totalUif: 0,
+          totalNet: 0
+        }
       );
 
-      return {
-        name: new Date(0, i).toLocaleString("default", {
-          month: "short"
-        }),
-        gross: found ? Number(found.totalGross) : 0
-      };
-    });
+      setYtd({
+        employeeCount: employees.length,
+        ...totals
+      });
 
-    setMonthly(formattedMonths);
+      const monthlyRes = await axios.get(
+        `${API}/api/payroll/monthly-summary/${year}`
+      );
 
-  } catch (err) {
-    console.error("Dashboard load error:", err);
+      const monthlyData = Array.isArray(monthlyRes.data)
+        ? monthlyRes.data
+        : [];
 
-    setYtd({
-      totalGross: 0,
-      totalUif: 0,
-      totalNet: 0
-    });
+      const formattedMonths = Array.from({ length: 12 }, (_, i) => {
+        const monthNumber = String(i + 1).padStart(2, "0");
+        const found = monthlyData.find(m => m.month === monthNumber);
 
-    setMonthly([]);
-  }
-};
+        return {
+          name: new Date(0, i).toLocaleString("default", {
+            month: "short"
+          }),
+          gross: found ? Number(found.totalGross) : 0
+        };
+      });
 
-  /* ================================
-     BACKUP
-  ================================= */
+      setMonthly(formattedMonths);
+    } catch (err) {
+      console.error("Dashboard load error:", err);
+      setYtd({
+        employeeCount: 0,
+        totalGross: 0,
+        totalUif: 0,
+        totalNet: 0
+      });
+      setMonthly([]);
+    }
+  }, [year]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
   const handleDownloadBackup = async () => {
-    const response = await axios.get(
-      `${API}/api/backup`,
-      { responseType: "blob" }
-    );
+    const response = await axios.get(`${API}/api/backup`, {
+      responseType: "blob"
+    });
 
-    const url = window.URL.createObjectURL(
-      new Blob([response.data])
-    );
-
+    const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement("a");
     link.href = url;
     link.setAttribute("download", "payroll-backup.db");
@@ -139,8 +121,7 @@ setYtd({
     const file = e.target.files[0];
     if (!file) return;
 
-    if (!window.confirm("Replace current database?"))
-      return;
+    if (!window.confirm("Replace current database?")) return;
 
     const formData = new FormData();
     formData.append("backup", file);
@@ -151,118 +132,157 @@ setYtd({
 
   return (
     <Box>
-      <Typography variant="h5" sx={{ mb: 3 }}>
-        Payroll Dashboard
-      </Typography>
-
-      {/* YEAR SELECTOR */}
-      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 3 }}>
-        <Select
-          value={year}
-          onChange={e => setYear(e.target.value)}
-          size="small"
-        >
-          {[currentYear - 2, currentYear - 1, currentYear].map(y => (
-            <MenuItem key={y} value={y}>
-              {y}
-            </MenuItem>
-          ))}
-        </Select>
-      </Box>
-
-      {/* BACKUP SECTION */}
-      <Box
+      <Paper
         sx={{
-          backgroundColor: "#ffffff",
           p: 3,
-          borderRadius: 2,
-          boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
-          mb: 4
+          mb: 3,
+          background:
+            "linear-gradient(135deg, rgba(15,76,129,0.08), rgba(37,99,235,0.03))",
+          border: "1px solid rgba(15,76,129,0.12)"
         }}
       >
-        <Typography fontWeight={700} sx={{ mb: 2 }}>
-          System Backup
-        </Typography>
-
-        <Button
-          variant="contained"
-          onClick={handleDownloadBackup}
-          sx={{ mr: 2 }}
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 2,
+            flexWrap: "wrap",
+            alignItems: "center"
+          }}
         >
-          Create Backup
-        </Button>
-
-        <Button
-          variant="outlined"
-          onClick={handleRestoreClick}
-        >
-          Restore Backup
-        </Button>
-
-        <input
-          type="file"
-          accept=".db"
-          ref={fileInputRef}
-          style={{ display: "none" }}
-          onChange={handleFileSelected}
-        />
-      </Box>
-
-      {/* YTD CARDS */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={4}>
-          <Box sx={cardStyle}>
-            <Typography>Total Gross YTD</Typography>
-            <Typography variant="h6" fontWeight={700}>
-              {money(ytd?.totalGross)}
+          <Box>
+            <Typography variant="h5" sx={{ mb: 0.5 }}>
+              Payroll Dashboard
+            </Typography>
+            <Typography color="text.secondary">
+              Track payroll totals, monthly trends, and database backups from one place.
             </Typography>
           </Box>
-        </Grid>
-        
-        {/* TOTAL EMPLOYEES */}
-        <Grid item xs={4}>
-          <Box sx={cardStyle}>
-            <Typography>Total Employees</Typography>
-            <Typography variant="h6" fontWeight={700}>
-              {ytd ? monthly.length : 0}
+
+          <Select
+            value={year}
+            onChange={e => setYear(e.target.value)}
+            size="small"
+            sx={{ minWidth: 120, backgroundColor: "#fff" }}
+          >
+            {[currentYear - 2, currentYear - 1, currentYear].map(y => (
+              <MenuItem key={y} value={y}>
+                {y}
+              </MenuItem>
+            ))}
+          </Select>
+        </Box>
+      </Paper>
+
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid item xs={12} md={3}>
+          <Paper sx={cardStyle}>
+            <Typography color="text.secondary" variant="body2">
+              Employees with YTD data
             </Typography>
-          </Box>
+            <Typography variant="h5" fontWeight={700}>
+              {ytd.employeeCount}
+            </Typography>
+          </Paper>
         </Grid>
 
-        <Grid item xs={4}>
-          <Box sx={cardStyle}>
-            <Typography>Total UIF YTD</Typography>
-            <Typography variant="h6" fontWeight={700}>
-              {money(ytd?.totalUif)}
+        <Grid item xs={12} md={3}>
+          <Paper sx={cardStyle}>
+            <Typography color="text.secondary" variant="body2">
+              Gross YTD
             </Typography>
-          </Box>
+            <Typography variant="h5" fontWeight={700}>
+              {money(ytd.totalGross)}
+            </Typography>
+          </Paper>
         </Grid>
 
-        <Grid item xs={4}>
-          <Box sx={cardStyle}>
-            <Typography>Total Net YTD</Typography>
-            <Typography variant="h6" fontWeight={700}>
-              {money(ytd?.totalNet)}
+        <Grid item xs={12} md={3}>
+          <Paper sx={cardStyle}>
+            <Typography color="text.secondary" variant="body2">
+              UIF YTD
             </Typography>
-          </Box>
+            <Typography variant="h5" fontWeight={700}>
+              {money(ytd.totalUif)}
+            </Typography>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} md={3}>
+          <Paper sx={cardStyle}>
+            <Typography color="text.secondary" variant="body2">
+              Net YTD
+            </Typography>
+            <Typography variant="h5" fontWeight={700}>
+              {money(ytd.totalNet)}
+            </Typography>
+          </Paper>
         </Grid>
       </Grid>
 
-      {/* MONTHLY GRAPH */}
-      <Box sx={{ ...cardStyle }}>
-        <Typography fontWeight={700} sx={{ mb: 2 }}>
-          Monthly Payroll Overview
-        </Typography>
+      <Grid container spacing={3}>
+        <Grid item xs={12} lg={8}>
+          <Paper sx={{ ...cardStyle, height: "100%" }}>
+            <Typography fontWeight={700} sx={{ mb: 1 }}>
+              Monthly Payroll Overview
+            </Typography>
+            <Typography color="text.secondary" variant="body2" sx={{ mb: 2 }}>
+              A month-by-month view of gross payroll for the selected year.
+            </Typography>
 
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={monthly}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip formatter={money} />
-            <Bar dataKey="gross" fill="#2563eb" radius={[6,6,0,0]} />
-          </BarChart>
-        </ResponsiveContainer>
+            <ResponsiveContainer width="100%" height={320}>
+              <BarChart data={monthly}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip formatter={money} />
+                <Bar dataKey="gross" fill="#2563eb" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} lg={4}>
+          <Paper sx={{ ...cardStyle, height: "100%" }}>
+            <Typography fontWeight={700} sx={{ mb: 1 }}>
+              Backup & Restore
+            </Typography>
+            <Typography color="text.secondary" variant="body2" sx={{ mb: 2 }}>
+              Keep a local copy of the database before making changes.
+            </Typography>
+
+            <Button
+              fullWidth
+              variant="contained"
+              onClick={handleDownloadBackup}
+              sx={{ mb: 1.5 }}
+            >
+              Create Backup
+            </Button>
+
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={handleRestoreClick}
+            >
+              Restore Backup
+            </Button>
+
+            <input
+              type="file"
+              accept=".db"
+              ref={fileInputRef}
+              style={{ display: "none" }}
+              onChange={handleFileSelected}
+            />
+          </Paper>
+        </Grid>
+      </Grid>
+
+      <Box sx={{ mt: 3 }}>
+        <Typography color="text.secondary" variant="body2">
+          Tip: use the year selector to compare payroll patterns across periods.
+        </Typography>
       </Box>
     </Box>
   );
@@ -271,8 +291,10 @@ setYtd({
 const cardStyle = {
   backgroundColor: "#ffffff",
   p: 3,
-  borderRadius: 2,
-  boxShadow: "0 8px 24px rgba(0,0,0,0.08)"
+  borderRadius: 3,
+  boxShadow: "0 8px 24px rgba(15,23,42,0.08)",
+  border: "1px solid rgba(15,23,42,0.06)",
+  height: "100%"
 };
 
 export default Dashboard;

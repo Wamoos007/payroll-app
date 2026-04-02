@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { useParams } from "react-router-dom";
 import html2pdf from "html2pdf.js";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import API from "../api";
 import {
   Box,
   Typography,
@@ -19,8 +19,6 @@ import {
   DialogContentText,
   DialogActions
 } from "@mui/material";
-
-const API = "http://localhost:3001";
 
 const money = v =>
   new Intl.NumberFormat("en-ZA", {
@@ -52,16 +50,16 @@ function Payslip(props) {
 
   const pdfRef = useRef(null);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     const res1 = await axios.get(`${API}/api/payroll/lines/forPayslip/${lineId}`);
     const res2 = await axios.get(`${API}/api/company`);
     setData(res1.data);
     setCompany(res2.data);
-  };
+  }, [lineId]);
 
   useEffect(() => {
     if (lineId) loadData();
-  }, [lineId]);
+  }, [lineId, loadData]);
 
   if (!data || !company) return null;
 
