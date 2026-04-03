@@ -34,10 +34,12 @@ const statCard = {
 
 export default function CompanySettings() {
   const sigPad = useRef(null);
+  const logoInputRef = useRef(null);
   const [company, setCompany] = useState({});
   const [settings, setSettings] = useState({});
   const [status, setStatus] = useState({ type: "", message: "" });
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const loadCompany = useCallback(async () => {
     try {
@@ -91,6 +93,44 @@ export default function CompanySettings() {
     sigPad.current?.clear();
   };
 
+  const handleLogoUpload = async event => {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    try {
+      setUploadingLogo(true);
+
+      const formData = new FormData();
+      formData.append("logo", file);
+
+      const res = await axios.post(`${API}/api/company/upload-logo`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data"
+        }
+      });
+
+      setCompany(prev => ({
+        ...prev,
+        logo_path: res.data.logo_path
+      }));
+
+      setStatus({
+        type: "success",
+        message: "Company logo uploaded. Save settings to keep it."
+      });
+    } catch (err) {
+      console.error("Logo upload error:", err);
+      setStatus({
+        type: "error",
+        message: getApiErrorMessage(err, "Logo upload failed.")
+      });
+    } finally {
+      setUploadingLogo(false);
+      event.target.value = "";
+    }
+  };
+
   const handleRemoveSavedSignature = () => {
     setCompany(prev => ({
       ...prev,
@@ -100,6 +140,18 @@ export default function CompanySettings() {
     setStatus({
       type: "info",
       message: "Saved signature will be removed the next time you save settings."
+    });
+  };
+
+  const handleRemoveLogo = () => {
+    setCompany(prev => ({
+      ...prev,
+      logo_path: ""
+    }));
+
+    setStatus({
+      type: "info",
+      message: "Saved logo will be removed the next time you save settings."
     });
   };
 
@@ -237,6 +289,17 @@ export default function CompanySettings() {
             </Typography>
           </Paper>
         </Grid>
+
+        <Grid item xs={12} md={4}>
+          <Paper sx={statCard}>
+            <Typography color="text.secondary" variant="body2">
+              Company logo
+            </Typography>
+            <Typography variant="h6" fontWeight={700}>
+              {company.logo_path ? "Uploaded" : "Not yet uploaded"}
+            </Typography>
+          </Paper>
+        </Grid>
       </Grid>
 
       <Grid container spacing={3}>
@@ -358,6 +421,61 @@ export default function CompanySettings() {
             <Typography color="text.secondary" variant="body2" sx={{ mb: 2.5 }}>
               These details appear across documents, payroll records, and employee-facing outputs.
             </Typography>
+
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Company Logo
+              </Typography>
+
+              {company.logo_path ? (
+                <Box
+                  component="img"
+                  src={`${API}${company.logo_path}`}
+                  alt="Company logo"
+                  sx={{
+                    width: 140,
+                    height: 140,
+                    objectFit: "contain",
+                    p: 1.5,
+                    mb: 1.5,
+                    border: "1px solid rgba(15,76,129,0.12)",
+                    borderRadius: 2,
+                    backgroundColor: "#fff"
+                  }}
+                />
+              ) : (
+                <Typography color="text.secondary" variant="body2" sx={{ mb: 1.5 }}>
+                  No logo uploaded yet.
+                </Typography>
+              )}
+
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={handleLogoUpload}
+              />
+
+              <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+                <Button
+                  variant="outlined"
+                  onClick={() => logoInputRef.current?.click()}
+                  disabled={uploadingLogo}
+                >
+                  {uploadingLogo ? "Uploading..." : company.logo_path ? "Replace Logo" : "Upload Logo"}
+                </Button>
+
+                <Button
+                  variant="text"
+                  color="error"
+                  disabled={!company.logo_path}
+                  onClick={handleRemoveLogo}
+                >
+                  Remove Logo
+                </Button>
+              </Box>
+            </Box>
 
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>

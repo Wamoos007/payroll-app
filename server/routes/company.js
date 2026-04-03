@@ -4,14 +4,13 @@ const db = require("../db");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const { getUploadsPath } = require("../paths");
 
 /* ======================================================
    UPLOAD DIRECTORY
 ====================================================== */
 
-const uploadDir = process.env.APPDATA
-  ? path.join(process.env.APPDATA, "payroll-app", "uploads")
-  : path.join(__dirname, "../uploads");
+const uploadDir = getUploadsPath();
 
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });

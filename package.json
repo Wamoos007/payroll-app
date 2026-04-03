@@ -1,7 +1,7 @@
 {
   "name": "payroll-app",
-  "version": "2.4.9",
-  "description": "Payroll Desktop Application",
+  "version": "2.4.11",
+  "description": "AMIEM Payroll Desktop Application",
   "main": "main.js",
   "author": "Waleed Moos",
   "license": "ISC",
@@ -13,13 +13,13 @@
     "client": "cross-env PORT=3002 REACT_APP_API_BASE_URL=http://localhost:3003 npm start --prefix client",
     "electron-dev": "cross-env NODE_ENV=development SERVER_PORT=3003 CLIENT_DEV_URL=http://localhost:3002 electron .",
     "build-client": "cd client && npm run build",
-    "build": "npm run build-client && cross-env NODE_ENV=production electron-builder",
-    "build:win": "npm run build-client && cross-env NODE_ENV=production electron-builder --win",
+    "build": "npm run build-client && cross-env NODE_ENV=production electron-builder --config.win.signAndEditExecutable=false",
+    "build:win": "npm run build-client && cross-env NODE_ENV=production electron-builder --win --config.win.signAndEditExecutable=false",
     "start": "cross-env NODE_ENV=production electron ."
   },
   "dependencies": {
     "@blackglory/better-sqlite3-migrations": "^0.1.20",
-    "better-sqlite3": "8.4.0",
+    "better-sqlite3": "^12.8.0",
     "cors": "^2.8.5",
     "csv-parse": "^6.1.0",
     "electron-log": "^5.4.3",
@@ -40,8 +40,15 @@
   },
   "build": {
     "appId": "com.payroll.app",
-    "productName": "Payroll",
+    "productName": "AMIEM Payroll",
+    "artifactName": "${productName}-Setup-${version}.${ext}",
     "asar": true,
+    "extraResources": [
+      {
+        "from": "assets/icon.ico",
+        "to": "icon.ico"
+      }
+    ],
     "files": [
       "**/*"
     ],
@@ -52,7 +59,11 @@
         "repo": "payroll-app"
       }
     ],
+    "nsis": {
+      "include": "assets/installer.nsh"
+    },
     "win": {
+      "icon": "assets/icon.ico",
       "target": "nsis"
     }
   }

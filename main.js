@@ -6,6 +6,8 @@ const fs = require("fs");
 
 let mainWindow;
 
+app.setName("AMIEM Payroll");
+
 /* ---------------------------
    LOGGING
 ---------------------------- */
@@ -106,9 +108,14 @@ async function startServer() {
 ---------------------------- */
 
 function createWindow() {
+  const windowIconPath = app.isPackaged
+    ? path.join(process.resourcesPath, "icon.ico")
+    : path.join(__dirname, "assets", "icon.png");
+
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
+    icon: windowIconPath,
     webPreferences: {
       contextIsolation: true,
       preload: path.join(__dirname, "preload.js")

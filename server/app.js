@@ -2,6 +2,7 @@ const express = require("express");
 const path = require("path");
 const cors = require("cors");
 const fs = require("fs");
+const { getUploadsPath } = require("./paths");
 
 const app = express();
 
@@ -24,9 +25,7 @@ app.use("/api/email", emailRoutes);
    STATIC UPLOADS
 =========================== */
 
-const uploadsPath = process.env.APPDATA
-  ? path.join(process.env.APPDATA, "payroll-app", "uploads")
-  : path.join(__dirname, "uploads");
+const uploadsPath = getUploadsPath();
 
 // Ensure uploads directory exists
 if (!fs.existsSync(uploadsPath)) {

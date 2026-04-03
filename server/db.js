@@ -2,42 +2,16 @@ const Database = require("better-sqlite3");
 const path = require("path");
 const { migrate } = require("@blackglory/better-sqlite3-migrations");
 const fs = require("fs");
-const os = require("os");
 const seedTaxYears = require("./seedTaxYears");
-
-/* ---------------------------
-   RESOLVE DATABASE PATH
----------------------------- */
-
-function getDefaultDataPath() {
-  if (process.platform === "darwin") {
-    return path.join(
-      os.homedir(),
-      "Library",
-      "Application Support",
-      "payroll-app"
-    );
-  }
-
-  if (process.platform === "win32") {
-    return path.join(
-      process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"),
-      "payroll-app"
-    );
-  }
-
-  return path.join(os.homedir(), ".config", "payroll-app");
-}
-
-// Use Electron userData path if available
-const appDataPath = process.env.USER_DATA_PATH || getDefaultDataPath();
+const { getAppDataPath, getDatabasePath } = require("./paths");
+const appDataPath = getAppDataPath();
 
 // Ensure directory exists
 if (!fs.existsSync(appDataPath)) {
   fs.mkdirSync(appDataPath, { recursive: true });
 }
 
-const dbPath = path.join(appDataPath, "payroll.db");
+const dbPath = getDatabasePath();
 
 console.log("Using database at:", dbPath);
 

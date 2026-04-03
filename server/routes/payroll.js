@@ -159,6 +159,128 @@ router.post("/runs", (req, res) => {
 });
 
 /* ===============================
+   UPDATE RUN
+================================ */
+router.patch("/runs/:id", (req, res) => {
+  const { period_start, period_end, pay_date } = req.body;
+
+  try {
+    if (!period_start || !period_end || !pay_date) {
+      return res.status(400).json({
+        error: "All pay run dates are required"
+      });
+    }
+
+    if (!isIsoDate(period_start) || !isIsoDate(period_end) || !isIsoDate(pay_date)) {
+      return res.status(400).json({
+        error: "Dates must use the YYYY-MM-DD format"
+      });
+    }
+
+    if (period_start > period_end) {
+      return res.status(400).json({
+        error: "Period start must be before period end"
+      });
+    }
+
+    if (pay_date < period_start || pay_date > period_end) {
+      return res.status(400).json({
+        error: "Pay date must fall within the pay period"
+      });
+    }
+
+    const existingRun = db.prepare(`
+      SELECT id
+      FROM pay_runs
+      WHERE id = ?
+    `).get(req.params.id);
+
+    if (!existingRun) {
+      return res.status(404).json({ error: "Pay run not found" });
+    }
+
+    const taxYear = getTaxYearForDate(pay_date);
+
+    if (!taxYear) {
+      return res.status(400).json({
+        error: "No tax year configured for this date"
+      });
+    }
+
+    db.prepare(`
+      UPDATE pay_runs
+      SET period_start = ?,
+          period_end = ?,
+          pay_date = ?,
+          tax_year_id = ?
+      WHERE id = ?
+    `).run(period_start, period_end, pay_date, taxYear.id, req.params.id);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Update run failed:", err);
+    res.status(500).json({ error: "Update failed" });
+  }
+});
+
+/* ===============================
+   DELETE RUN
+================================ */
+router.delete("/runs/:id", (req, res) => {
+  try {
+    const runId = Number(req.params.id);
+
+    if (!Number.isInteger(runId)) {
+      return res.status(400).json({ error: "Invalid pay run id" });
+    }
+
+    const existingRun = db.prepare(`
+      SELECT id
+      FROM pay_runs
+      WHERE id = ?
+    `).get(runId);
+
+    if (!existingRun) {
+      return res.status(404).json({ error: "Pay run not found" });
+    }
+
+    const deleteRun = db.transaction(id => {
+      const lineIds = db.prepare(`
+        SELECT id
+        FROM payroll_lines
+        WHERE pay_run_id = ?
+      `).all(id);
+
+      const deleteDeductions = db.prepare(`
+        DELETE FROM deductions
+        WHERE payroll_line_id = ?
+      `);
+
+      for (const line of lineIds) {
+        deleteDeductions.run(line.id);
+      }
+
+      db.prepare(`
+        DELETE FROM payroll_lines
+        WHERE pay_run_id = ?
+      `).run(id);
+
+      db.prepare(`
+        DELETE FROM pay_runs
+        WHERE id = ?
+      `).run(id);
+    });
+
+    deleteRun(runId);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Delete run failed:", err);
+    res.status(500).json({ error: "Delete failed" });
+  }
+});
+
+/* ===============================
    GET LINES FOR RUN
 ================================ */
 router.get("/lines/:runId", (req, res) => {

@@ -1,17 +1,16 @@
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
+const { getBackupsPath, getDatabasePath } = require("../paths");
 
 const router = express.Router();
 
-const DB_PATH = process.env.DB_PATH ||
-  path.join(__dirname, "../payroll.db");
-
-const BACKUP_DIR = path.join(__dirname, "../backups");
+const DB_PATH = process.env.DB_PATH || getDatabasePath();
+const BACKUP_DIR = getBackupsPath();
 
 // Ensure backup directory exists
 if (!fs.existsSync(BACKUP_DIR)) {
-  fs.mkdirSync(BACKUP_DIR);
+  fs.mkdirSync(BACKUP_DIR, { recursive: true });
 }
 
 /**

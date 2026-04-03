@@ -5,10 +5,15 @@ const multer = require("multer");
 const { parse } = require("csv-parse/sync");
 const fs = require("fs");
 const path = require("path");
+const { getUploadsPath } = require("../paths");
 
-const upload = multer({
-  dest: path.join(__dirname, "../uploads")
-});
+const uploadDir = getUploadsPath();
+
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const upload = multer({ dest: uploadDir });
 
 /* GET ALL */
 router.get("/", (req, res) => {
