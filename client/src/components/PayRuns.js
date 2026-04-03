@@ -41,7 +41,7 @@ function formatDisplayDate(dateValue) {
   });
 }
 
-function PayRuns() {
+function PayRuns({ readOnly = false }) {
   const [runs, setRuns] = useState([]);
   const [openAdd, setOpenAdd] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
@@ -196,7 +196,7 @@ function PayRuns() {
             </Typography>
           </Box>
 
-          <Button variant="contained" onClick={() => setOpenAdd(true)}>
+          <Button variant="contained" onClick={() => setOpenAdd(true)} disabled={readOnly}>
             + Add New Pay Run
           </Button>
         </Box>
@@ -282,6 +282,7 @@ function PayRuns() {
                         });
                         setOpenEdit(true);
                       }}
+                      disabled={readOnly}
                     >
                       <EditIcon />
                     </IconButton>
@@ -289,6 +290,7 @@ function PayRuns() {
                     <IconButton
                       color="error"
                       onClick={() => handleDelete(run.id)}
+                      disabled={readOnly}
                     >
                       <DeleteIcon />
                     </IconButton>
@@ -333,6 +335,7 @@ function PayRuns() {
             type="date"
             fullWidth
             margin="dense"
+            disabled={readOnly}
             InputLabelProps={{ shrink: true }}
             value={form.period_start}
             onChange={e => setForm({ ...form, period_start: e.target.value })}
@@ -342,6 +345,7 @@ function PayRuns() {
             type="date"
             fullWidth
             margin="dense"
+            disabled={readOnly}
             InputLabelProps={{ shrink: true }}
             value={form.period_end}
             onChange={e => setForm({ ...form, period_end: e.target.value })}
@@ -351,6 +355,7 @@ function PayRuns() {
             type="date"
             fullWidth
             margin="dense"
+            disabled={readOnly}
             InputLabelProps={{ shrink: true }}
             value={form.pay_date}
             onChange={e => setForm({ ...form, pay_date: e.target.value })}
@@ -365,7 +370,7 @@ function PayRuns() {
           >
             Cancel
           </Button>
-          <Button variant="contained" onClick={handleAdd}>
+          <Button variant="contained" onClick={handleAdd} disabled={readOnly}>
             Save
           </Button>
         </DialogActions>
@@ -392,6 +397,7 @@ function PayRuns() {
             type="date"
             fullWidth
             margin="dense"
+            disabled={readOnly}
             InputLabelProps={{ shrink: true }}
             value={form.period_start}
             onChange={e => setForm({ ...form, period_start: e.target.value })}
@@ -401,6 +407,7 @@ function PayRuns() {
             type="date"
             fullWidth
             margin="dense"
+            disabled={readOnly}
             InputLabelProps={{ shrink: true }}
             value={form.period_end}
             onChange={e => setForm({ ...form, period_end: e.target.value })}
@@ -410,6 +417,7 @@ function PayRuns() {
             type="date"
             fullWidth
             margin="dense"
+            disabled={readOnly}
             InputLabelProps={{ shrink: true }}
             value={form.pay_date}
             onChange={e => setForm({ ...form, pay_date: e.target.value })}
@@ -425,7 +433,7 @@ function PayRuns() {
           >
             Cancel
           </Button>
-          <Button variant="contained" onClick={handleEdit}>
+          <Button variant="contained" onClick={handleEdit} disabled={readOnly}>
             Save Changes
           </Button>
         </DialogActions>

@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Routes, Route, Link, useLocation } from "react-router-dom";
 import axios from "axios";
 import API from "./api";
 import SARS from "./components/SARS";
 import {
+  AlertTitle,
   Box,
   Drawer,
   List,
@@ -66,6 +67,16 @@ function App() {
   const [updateAvailable] = useState(false);
   const [version, setVersion] = useState("");
   const [updateProgress, setUpdateProgress] = useState(null);
+  const [session, setSession] = useState(null);
+
+  const loadSession = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API}/api/session`);
+      setSession(res.data);
+    } catch (err) {
+      console.error("Session check failed:", err);
+    }
+  }, []);
 
   useEffect(() => {
     const checkVersion = async () => {
@@ -83,13 +94,25 @@ function App() {
     };
 
     checkVersion();
+    loadSession();
+
+    const intervalId = window.setInterval(loadSession, 15000);
 
     if (window.electronAPI) {
       window.electronAPI.onUpdateProgress((percent) => {
         setUpdateProgress(percent);
       });
     }
-  }, []);
+
+    return () => window.clearInterval(intervalId);
+  }, [loadSession]);
+
+  const isReadOnly = session?.accessMode === "read";
+  const lockOwner = session?.lockOwner;
+
+  const readOnlyMessage = lockOwner?.holderName
+    ? `${lockOwner.holderName} currently has edit access for this database.`
+    : "Another session currently has edit access for this database.";
 
   return (
     <Box sx={{ display: "flex" }}>
@@ -127,7 +150,7 @@ function App() {
       >
         <Toolbar>
           <Typography variant="h6" fontWeight={700}>
-            Payroll
+            AMIEM Payroll
           </Typography>
         </Toolbar>
 
@@ -210,15 +233,22 @@ function App() {
       >
         <Toolbar />
 
+        {isReadOnly ? (
+          <Alert severity="warning" sx={{ mb: 3 }}>
+            <AlertTitle>Read-only mode</AlertTitle>
+            {readOnlyMessage} You can still view records, generate reports, and download payslips.
+          </Alert>
+        ) : null}
+
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/employees" element={<Employees />} />
-          <Route path="/payruns" element={<PayRuns />} />
-          <Route path="/enter-hours" element={<EnterHours />} />
+          <Route path="/" element={<Dashboard readOnly={isReadOnly} />} />
+          <Route path="/employees" element={<Employees readOnly={isReadOnly} />} />
+          <Route path="/payruns" element={<PayRuns readOnly={isReadOnly} />} />
+          <Route path="/enter-hours" element={<EnterHours readOnly={isReadOnly} />} />
           <Route path="/payslips" element={<PayslipList />} />
-          <Route path="/payslip/:lineId" element={<Payslip />} />
+          <Route path="/payslip/:lineId" element={<Payslip readOnly={isReadOnly} />} />
           <Route path="/ytd" element={<YTD />} />
-          <Route path="/company" element={<CompanySettings />} />
+          <Route path="/company" element={<CompanySettings readOnly={isReadOnly} />} />
           <Route path="/sars" element={<SARS />} />
         </Routes>
       </Box>

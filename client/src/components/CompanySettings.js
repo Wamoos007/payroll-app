@@ -32,7 +32,7 @@ const statCard = {
   border: "1px solid rgba(15,76,129,0.08)"
 };
 
-export default function CompanySettings() {
+export default function CompanySettings({ readOnly = false }) {
   const sigPad = useRef(null);
   const logoInputRef = useRef(null);
   const [company, setCompany] = useState({});
@@ -244,7 +244,7 @@ export default function CompanySettings() {
             </Typography>
           </Box>
 
-          <Button variant="contained" onClick={handleSave} disabled={saving}>
+          <Button variant="contained" onClick={handleSave} disabled={saving || readOnly}>
             {saving ? "Saving..." : "Save Settings"}
           </Button>
         </Box>
@@ -323,6 +323,7 @@ export default function CompanySettings() {
                   control={
                     <Switch
                       checked={settings.enable_paye === "1"}
+                      disabled={readOnly}
                       onChange={e =>
                         handleSettingToggle("enable_paye", e.target.checked)
                       }
@@ -337,6 +338,7 @@ export default function CompanySettings() {
                   control={
                     <Switch
                       checked={settings.enable_uif === "1"}
+                      disabled={readOnly}
                       onChange={e =>
                         handleSettingToggle("enable_uif", e.target.checked)
                       }
@@ -398,14 +400,14 @@ export default function CompanySettings() {
             </Box>
 
             <Box sx={{ display: "flex", gap: 1.5, mt: 2, flexWrap: "wrap" }}>
-              <Button variant="outlined" onClick={handleClearSignature}>
+              <Button variant="outlined" onClick={handleClearSignature} disabled={readOnly}>
                 Clear Pad
               </Button>
               <Button
                 variant="text"
                 color="error"
                 onClick={handleRemoveSavedSignature}
-                disabled={!company.signature_image}
+                disabled={!company.signature_image || readOnly}
               >
                 Remove Saved Signature
               </Button>
@@ -454,6 +456,7 @@ export default function CompanySettings() {
                 type="file"
                 accept="image/*"
                 hidden
+                disabled={readOnly}
                 onChange={handleLogoUpload}
               />
 
@@ -461,7 +464,7 @@ export default function CompanySettings() {
                 <Button
                   variant="outlined"
                   onClick={() => logoInputRef.current?.click()}
-                  disabled={uploadingLogo}
+                  disabled={uploadingLogo || readOnly}
                 >
                   {uploadingLogo ? "Uploading..." : company.logo_path ? "Replace Logo" : "Upload Logo"}
                 </Button>
@@ -469,7 +472,7 @@ export default function CompanySettings() {
                 <Button
                   variant="text"
                   color="error"
-                  disabled={!company.logo_path}
+                  disabled={!company.logo_path || readOnly}
                   onClick={handleRemoveLogo}
                 >
                   Remove Logo
@@ -484,6 +487,7 @@ export default function CompanySettings() {
                   label="Company Name"
                   name="name"
                   value={company.name || ""}
+                  disabled={readOnly}
                   onChange={handleChange}
                 />
               </Grid>
@@ -494,6 +498,7 @@ export default function CompanySettings() {
                   label="Registration Number"
                   name="registration_number"
                   value={company.registration_number || ""}
+                  disabled={readOnly}
                   onChange={handleChange}
                 />
               </Grid>
@@ -504,6 +509,7 @@ export default function CompanySettings() {
                   label="Contact Email"
                   name="contact_email"
                   value={company.contact_email || ""}
+                  disabled={readOnly}
                   onChange={handleChange}
                 />
               </Grid>
@@ -514,6 +520,7 @@ export default function CompanySettings() {
                   label="Contact Number"
                   name="contact_number"
                   value={company.contact_number || ""}
+                  disabled={readOnly}
                   onChange={handleChange}
                 />
               </Grid>
@@ -526,6 +533,7 @@ export default function CompanySettings() {
                   label="Address"
                   name="address"
                   value={company.address || ""}
+                  disabled={readOnly}
                   onChange={handleChange}
                 />
               </Grid>
@@ -547,6 +555,7 @@ export default function CompanySettings() {
                   label="SMTP Host"
                   name="smtp_host"
                   value={company.smtp_host || ""}
+                  disabled={readOnly}
                   onChange={handleChange}
                 />
               </Grid>
@@ -557,6 +566,7 @@ export default function CompanySettings() {
                   label="Port"
                   name="smtp_port"
                   value={company.smtp_port || ""}
+                  disabled={readOnly}
                   onChange={handleChange}
                 />
               </Grid>
@@ -576,6 +586,7 @@ export default function CompanySettings() {
                     control={
                       <Switch
                         checked={Boolean(company.smtp_secure)}
+                        disabled={readOnly}
                         onChange={handleSwitch}
                       />
                     }
@@ -590,6 +601,7 @@ export default function CompanySettings() {
                   label="SMTP Username"
                   name="smtp_user"
                   value={company.smtp_user || ""}
+                  disabled={readOnly}
                   onChange={handleChange}
                 />
               </Grid>
@@ -601,6 +613,7 @@ export default function CompanySettings() {
                   label="SMTP Password"
                   name="smtp_pass"
                   value={company.smtp_pass || ""}
+                  disabled={readOnly}
                   onChange={handleChange}
                 />
               </Grid>
@@ -611,6 +624,7 @@ export default function CompanySettings() {
                   label="From Email Address"
                   name="smtp_from"
                   value={company.smtp_from || ""}
+                  disabled={readOnly}
                   onChange={handleChange}
                 />
               </Grid>

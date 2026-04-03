@@ -39,6 +39,7 @@ const formatDate = dateString => {
 function Payslip(props) {
   const params = useParams();
   const lineId = props?.lineId || params.lineId;
+  const readOnly = props?.readOnly || false;
 
   const [data, setData] = useState(null);
   const [company, setCompany] = useState(null);
@@ -142,7 +143,7 @@ function Payslip(props) {
         <Button variant="contained" onClick={handleExport}>
           Download PDF
         </Button>
-        <Button variant="outlined" onClick={() => setShowAdd(true)}>
+        <Button variant="outlined" onClick={() => setShowAdd(true)} disabled={readOnly}>
           Add Deduction
         </Button>
       </Box>
@@ -152,13 +153,15 @@ function Payslip(props) {
         <Box sx={{ mb: 3, display: "flex", gap: 2 }}>
           <TextField size="small" label="Description"
             value={desc}
+            disabled={readOnly}
             onChange={e => setDesc(e.target.value)}
           />
           <TextField size="small" type="number" label="Amount"
             value={amount}
+            disabled={readOnly}
             onChange={e => setAmount(e.target.value)}
           />
-          <Button variant="contained" onClick={addDeduction}>Save</Button>
+          <Button variant="contained" onClick={addDeduction} disabled={readOnly}>Save</Button>
           <Button onClick={() => setShowAdd(false)}>Cancel</Button>
         </Box>
       )}
@@ -329,7 +332,7 @@ function Payslip(props) {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowDeleteDialog(false)}>Cancel</Button>
-          <Button onClick={confirmDelete} color="error" variant="contained">
+          <Button onClick={confirmDelete} color="error" variant="contained" disabled={readOnly}>
             Delete
           </Button>
         </DialogActions>

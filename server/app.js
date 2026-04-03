@@ -3,6 +3,13 @@ const path = require("path");
 const cors = require("cors");
 const fs = require("fs");
 const { getUploadsPath } = require("./paths");
+const {
+  getSessionStatus,
+  getWriteLockError,
+  hasWriteAccess,
+  initializeSessionLock,
+  refreshSessionLock
+} = require("./sessionLock");
 
 const app = express();
 
@@ -13,6 +20,22 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ limit: "20mb", extended: true }));
+
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api/email/")) {
+    return next();
+  }
+
+  if (!["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
+    return next();
+  }
+
+  if (hasWriteAccess()) {
+    return next();
+  }
+
+  return res.status(423).json(getWriteLockError());
+});
 
 /* ===============================
               EMAIL
@@ -63,6 +86,10 @@ app.get("/api/version", (req, res) => {
   res.json({ version: packageJson.version });
 });
 
+app.get("/api/session", (req, res) => {
+  res.json(refreshSessionLock());
+});
+
 /* ===========================
    PRODUCTION REACT SERVE
    (MUST BE LAST)
@@ -83,6 +110,12 @@ if (process.env.NODE_ENV === "production") {
 =========================== */
 
 function startServer(port = Number(process.env.PORT || 3001)) {
+  const session = initializeSessionLock(packageJson.version);
+
+  console.log(
+    `Session mode: ${session.accessMode} (${session.currentSession.holderName})`
+  );
+
   return new Promise((resolve, reject) => {
     const server = app.listen(port, () => {
       console.log(`Server running at http://localhost:${port}`);

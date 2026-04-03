@@ -16,7 +16,7 @@ import {
   TextField
 } from "@mui/material";
 
-function EnterHours() {
+function EnterHours({ readOnly = false }) {
   const [runs, setRuns] = useState([]);
   const [selectedRun, setSelectedRun] = useState(null);
   const [lines, setLines] = useState([]);
@@ -168,7 +168,7 @@ function EnterHours() {
       <Box sx={{ mb: 3, display: "flex", gap: 2 }}>
         <Button
           variant="outlined"
-          disabled={!selectedRun}
+          disabled={!selectedRun || readOnly}
           onClick={handleAddMissing}
         >
           Add New Employees To This Run
@@ -234,6 +234,7 @@ function EnterHours() {
                     <TextField
                       type="number"
                       size="small"
+                      disabled={readOnly}
                       value={line.hours_wk1 || 0}
                       onChange={(e) =>
                         handleChange(
@@ -249,6 +250,7 @@ function EnterHours() {
                     <TextField
                       type="number"
                       size="small"
+                      disabled={readOnly}
                       value={line.hours_wk2 || 0}
                       onChange={(e) =>
                         handleChange(
@@ -264,6 +266,7 @@ function EnterHours() {
                     <TextField
                       type="number"
                       size="small"
+                      disabled={readOnly}
                       value={line.ot15_hours || 0}
                       onChange={(e) =>
                         handleChange(
@@ -279,6 +282,7 @@ function EnterHours() {
                     <TextField
                       type="number"
                       size="small"
+                      disabled={readOnly}
                       value={line.ot20_hours || 0}
                       onChange={(e) =>
                         handleChange(

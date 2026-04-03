@@ -1,6 +1,6 @@
 {
   "name": "payroll-app",
-  "version": "2.4.11",
+  "version": "2.6.0",
   "description": "AMIEM Payroll Desktop Application",
   "main": "main.js",
   "author": "Waleed Moos",

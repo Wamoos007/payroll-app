@@ -48,7 +48,7 @@ const emptyStateStyle = {
   background: "linear-gradient(180deg, #fcfdff, #f7fbff)"
 };
 
-function Employees() {
+function Employees({ readOnly = false }) {
   const [employees, setEmployees] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
@@ -265,6 +265,7 @@ function Employees() {
               variant="outlined"
               component="label"
               startIcon={<UploadFileIcon />}
+              disabled={readOnly}
             >
               Import CSV
               <input
@@ -279,6 +280,7 @@ function Employees() {
               variant="contained"
               onClick={handleAddClick}
               startIcon={<PersonAddAlt1Icon />}
+              disabled={readOnly}
             >
               Add Employee
             </Button>
@@ -361,8 +363,8 @@ function Employees() {
           <Typography color="text.secondary" sx={{ mb: 2.5 }}>
             Add your first employee or switch the filter to view another employee group.
           </Typography>
-          <Button variant="contained" onClick={handleAddClick}>
-            Create Employee
+          <Button variant="contained" onClick={handleAddClick} disabled={readOnly}>
+            {readOnly ? "Read-only mode" : "Create Employee"}
           </Button>
         </Paper>
       ) : (
@@ -399,7 +401,7 @@ function Employees() {
                     </TableCell>
 
                     <TableCell align="right">
-                      <IconButton onClick={() => handleEditClick(emp)}>
+                      <IconButton onClick={() => handleEditClick(emp)} disabled={readOnly}>
                         <EditIcon />
                       </IconButton>
 
@@ -407,6 +409,7 @@ function Employees() {
                         <IconButton
                           color="warning"
                           onClick={() => handleDeactivate(emp.id)}
+                          disabled={readOnly}
                         >
                           <BlockIcon />
                         </IconButton>
@@ -414,6 +417,7 @@ function Employees() {
                         <IconButton
                           color="success"
                           onClick={() => handleReactivate(emp.id)}
+                          disabled={readOnly}
                         >
                           <CheckCircleOutlineIcon />
                         </IconButton>
@@ -439,6 +443,7 @@ function Employees() {
                 fullWidth
                 label="Full Name"
                 value={form.full_name}
+                disabled={readOnly}
                 onChange={e =>
                   setForm({ ...form, full_name: e.target.value })
                 }
@@ -450,6 +455,7 @@ function Employees() {
                 fullWidth
                 label="Employee Code"
                 value={form.employee_code}
+                disabled={readOnly}
                 onChange={e =>
                   setForm({ ...form, employee_code: e.target.value })
                 }
@@ -461,6 +467,7 @@ function Employees() {
                 fullWidth
                 label="ID Number"
                 value={form.id_number}
+                disabled={readOnly}
                 onChange={e =>
                   setForm({ ...form, id_number: e.target.value })
                 }
@@ -472,6 +479,7 @@ function Employees() {
                 fullWidth
                 label="Email"
                 value={form.email || ""}
+                disabled={readOnly}
                 onChange={e =>
                   setForm({ ...form, email: e.target.value })
                 }
@@ -484,6 +492,7 @@ function Employees() {
                 label="Hourly Rate"
                 type="number"
                 value={form.hourly_rate}
+                disabled={readOnly}
                 onChange={e =>
                   setForm({ ...form, hourly_rate: e.target.value })
                 }
@@ -497,7 +506,7 @@ function Employees() {
             Cancel
           </Button>
 
-          <Button variant="contained" onClick={handleSave}>
+          <Button variant="contained" onClick={handleSave} disabled={readOnly}>
             {isEdit ? "Save Changes" : "Create Employee"}
           </Button>
         </DialogActions>

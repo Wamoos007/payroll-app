@@ -26,7 +26,7 @@ const money = v =>
     currency: "ZAR"
   }).format(Number(v || 0));
 
-function Dashboard() {
+function Dashboard({ readOnly = false }) {
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
   const [ytd, setYtd] = useState({
@@ -264,6 +264,7 @@ function Dashboard() {
               fullWidth
               variant="outlined"
               onClick={handleRestoreClick}
+              disabled={readOnly}
             >
               Restore Backup
             </Button>
