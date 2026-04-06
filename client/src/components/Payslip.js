@@ -8,6 +8,7 @@ import {
   Typography,
   Button,
   Grid,
+  Stack,
   Table,
   TableRow,
   TableCell,
@@ -211,53 +212,49 @@ function Payslip(props) {
         </Box>
 
         <Box sx={{ px: 3, py: 2.5, borderBottom: "1px solid #cbd5e1", backgroundColor: "#f8fafc" }}>
-          <Grid container spacing={2}>
-            <Grid item xs={6}>
-              <Table size="small">
-                <TableBody>
-                  <TableRow>
-                    <TableCell sx={{ borderBottom: "none", color: "#475569", width: "38%" }}>
-                      Employee Name
-                    </TableCell>
-                    <TableCell sx={{ borderBottom: "none", fontWeight: 700 }}>
-                      {data.full_name}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell sx={{ borderBottom: "none", color: "#475569" }}>
-                      ID Number
-                    </TableCell>
-                    <TableCell sx={{ borderBottom: "none", fontWeight: 700 }}>
-                      {data.id_number || "-"}
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </Grid>
+          <Stack
+            direction="row"
+            spacing={3}
+            justifyContent="space-between"
+            alignItems="center"
+            sx={{ flexWrap: "wrap", rowGap: 1.5 }}
+          >
+            <Typography variant="body2">
+              <Box component="span" sx={{ color: "#475569", mr: 1 }}>
+                Employee Name:
+              </Box>
+              <Box component="span" sx={{ fontWeight: 700 }}>
+                {data.full_name}
+              </Box>
+            </Typography>
 
-            <Grid item xs={6}>
-              <Table size="small">
-                <TableBody>
-                  <TableRow>
-                    <TableCell sx={{ borderBottom: "none", color: "#475569", width: "38%" }}>
-                      Employee Code
-                    </TableCell>
-                    <TableCell sx={{ borderBottom: "none", fontWeight: 700 }}>
-                      {data.employee_code || "-"}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell sx={{ borderBottom: "none", color: "#475569" }}>
-                      Pay Date
-                    </TableCell>
-                    <TableCell sx={{ borderBottom: "none", fontWeight: 700 }}>
-                      {formatDate(data.pay_date)}
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </Grid>
-          </Grid>
+            <Typography variant="body2">
+              <Box component="span" sx={{ color: "#475569", mr: 1 }}>
+                ID Number:
+              </Box>
+              <Box component="span" sx={{ fontWeight: 700 }}>
+                {data.id_number || "-"}
+              </Box>
+            </Typography>
+
+            <Typography variant="body2">
+              <Box component="span" sx={{ color: "#475569", mr: 1 }}>
+                Employee Code:
+              </Box>
+              <Box component="span" sx={{ fontWeight: 700 }}>
+                {data.employee_code || "-"}
+              </Box>
+            </Typography>
+
+            <Typography variant="body2">
+              <Box component="span" sx={{ color: "#475569", mr: 1 }}>
+                Pay Date:
+              </Box>
+              <Box component="span" sx={{ fontWeight: 700 }}>
+                {formatDate(data.pay_date)}
+              </Box>
+            </Typography>
+          </Stack>
         </Box>
 
         {/* TABLE */}
