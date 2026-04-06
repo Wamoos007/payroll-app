@@ -286,9 +286,19 @@ router.delete("/runs/:id", (req, res) => {
 router.get("/lines/:runId", (req, res) => {
   try {
     const rows = db.prepare(`
-      SELECT pl.*, e.full_name, e.employee_code, e.email
+      SELECT
+        pl.*,
+        e.full_name,
+        e.employee_code,
+        e.email,
+        COALESCE(d.total_deductions, 0) AS manual_deductions
       FROM payroll_lines pl
       JOIN employees e ON pl.employee_id = e.id
+      LEFT JOIN (
+        SELECT payroll_line_id, SUM(COALESCE(amount, 0)) AS total_deductions
+        FROM deductions
+        GROUP BY payroll_line_id
+      ) d ON d.payroll_line_id = pl.id
       WHERE pl.pay_run_id = ?
       ORDER BY e.employee_code ASC
     `).all(req.params.runId);

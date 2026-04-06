@@ -4,6 +4,7 @@ import axios from "axios";
 import API from "../api";
 import {
   Box,
+  Paper,
   Typography,
   Select,
   MenuItem,
@@ -15,6 +16,40 @@ import {
   TableBody,
   TextField
 } from "@mui/material";
+
+const money = value =>
+  new Intl.NumberFormat("en-ZA", {
+    style: "currency",
+    currency: "ZAR",
+    minimumFractionDigits: 2
+  }).format(Number(value || 0));
+
+function getLineSummary(line) {
+  const normalHours = Number(line.hours_wk1 || 0) + Number(line.hours_wk2 || 0);
+  const overtime15Hours = Number(line.ot15_hours || 0);
+  const overtime20Hours = Number(line.ot20_hours || 0);
+  const totalHours = normalHours + overtime15Hours + overtime20Hours;
+  const rate = Number(line.rate_used || 0);
+  const grossPay =
+    (normalHours * rate) +
+    (overtime15Hours * rate * 1.5) +
+    (overtime20Hours * rate * 2);
+  const taxAmount = Number(line.tax_amount || 0);
+  const uifAmount = grossPay * 0.01;
+  const manualDeductions = Number(line.manual_deductions || 0);
+  const totalDeductions = taxAmount + uifAmount + manualDeductions;
+  const netPay = grossPay - totalDeductions;
+
+  return {
+    totalHours,
+    grossPay,
+    taxAmount,
+    uifAmount,
+    manualDeductions,
+    totalDeductions,
+    netPay
+  };
+}
 
 function EnterHours({ readOnly = false }) {
   const [runs, setRuns] = useState([]);
@@ -82,11 +117,7 @@ function EnterHours({ readOnly = false }) {
     const run = runs.find(r => r.id === selectedRun);
 
     const rows = lines.map(line => {
-      const total =
-        Number(line.hours_wk1 || 0) +
-        Number(line.hours_wk2 || 0) +
-        Number(line.ot15_hours || 0) +
-        Number(line.ot20_hours || 0);
+      const summary = getLineSummary(line);
 
       return `
         <tr>
@@ -95,30 +126,42 @@ function EnterHours({ readOnly = false }) {
           <td>${line.hours_wk2 || 0}</td>
           <td>${line.ot15_hours || 0}</td>
           <td>${line.ot20_hours || 0}</td>
-          <td>${total}</td>
-          <td>${line.rate_used}</td>
+          <td>${summary.totalHours}</td>
+          <td>${money(line.rate_used)}</td>
+          <td>${money(summary.grossPay)}</td>
+          <td>${money(summary.totalDeductions)}</td>
+          <td>${money(summary.netPay)}</td>
         </tr>
       `;
     }).join("");
 
     const html = `
-      <div style="font-family: Arial; padding: 20px;">
-        <h2 style="margin-bottom:5px;">Payroll Hours Report</h2>
-        <p><strong>Pay Date:</strong> ${run?.pay_date}</p>
-        <hr style="margin:15px 0;" />
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:16px;">
+          <div>
+            <h2 style="margin:0 0 6px;">Payroll Hours Report</h2>
+            <p style="margin:0;"><strong>Pay Date:</strong> ${run?.pay_date || ""}</p>
+          </div>
+          <div style="text-align:right; color:#475569;">
+            <p style="margin:0;">Gross, deductions, and net pay include saved payroll values.</p>
+          </div>
+        </div>
         <table style="width:100%; border-collapse: collapse;">
           <thead>
-            <tr>
-              <th style="border:1px solid #ccc; padding:6px;">Employee</th>
-              <th style="border:1px solid #ccc; padding:6px;">Week 1</th>
-              <th style="border:1px solid #ccc; padding:6px;">Week 2</th>
-              <th style="border:1px solid #ccc; padding:6px;">OT 1.5</th>
-              <th style="border:1px solid #ccc; padding:6px;">OT 2.0</th>
-              <th style="border:1px solid #ccc; padding:6px;">Total</th>
-              <th style="border:1px solid #ccc; padding:6px;">Rate</th>
+            <tr style="background:#e2e8f0;">
+              <th style="border:1px solid #cbd5e1; padding:8px; text-align:left;">Employee</th>
+              <th style="border:1px solid #cbd5e1; padding:8px;">Week 1</th>
+              <th style="border:1px solid #cbd5e1; padding:8px;">Week 2</th>
+              <th style="border:1px solid #cbd5e1; padding:8px;">OT 1.5</th>
+              <th style="border:1px solid #cbd5e1; padding:8px;">OT 2.0</th>
+              <th style="border:1px solid #cbd5e1; padding:8px;">Hours</th>
+              <th style="border:1px solid #cbd5e1; padding:8px;">Rate</th>
+              <th style="border:1px solid #cbd5e1; padding:8px;">Gross Pay</th>
+              <th style="border:1px solid #cbd5e1; padding:8px;">Deductions</th>
+              <th style="border:1px solid #cbd5e1; padding:8px;">Net Pay</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody style="font-size:12px;">
             ${rows}
           </tbody>
         </table>
@@ -130,7 +173,7 @@ function EnterHours({ readOnly = false }) {
         margin: 10,
         filename: `Hours_${run?.pay_date}.pdf`,
         html2canvas: { scale: 2 },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+        jsPDF: { unit: "mm", format: "a4", orientation: "landscape" }
       })
       .from(html)
       .save();
@@ -203,7 +246,8 @@ function EnterHours({ readOnly = false }) {
           </Typography>
         </Box>
       ) : (
-        <Table>
+        <Paper sx={{ overflow: "auto" }}>
+          <Table sx={{ minWidth: 1100 }}>
           <TableHead>
             <TableRow>
               <TableCell>Employee</TableCell>
@@ -213,16 +257,15 @@ function EnterHours({ readOnly = false }) {
               <TableCell>OT 2.0</TableCell>
               <TableCell>Total Hours</TableCell>
               <TableCell>Rate</TableCell>
+              <TableCell>Gross Pay</TableCell>
+              <TableCell>Deductions</TableCell>
+              <TableCell>Net Pay</TableCell>
             </TableRow>
           </TableHead>
 
           <TableBody>
             {lines.map(line => {
-              const total =
-                Number(line.hours_wk1 || 0) +
-                Number(line.hours_wk2 || 0) +
-                Number(line.ot15_hours || 0) +
-                Number(line.ot20_hours || 0);
+              const summary = getLineSummary(line);
 
               return (
                 <TableRow key={line.id}>
@@ -294,13 +337,17 @@ function EnterHours({ readOnly = false }) {
                     />
                   </TableCell>
 
-                  <TableCell>{total}</TableCell>
-                  <TableCell>{line.rate_used}</TableCell>
+                  <TableCell>{summary.totalHours}</TableCell>
+                  <TableCell>{money(line.rate_used)}</TableCell>
+                  <TableCell>{money(summary.grossPay)}</TableCell>
+                  <TableCell>{money(summary.totalDeductions)}</TableCell>
+                  <TableCell>{money(summary.netPay)}</TableCell>
                 </TableRow>
               );
             })}
           </TableBody>
-        </Table>
+          </Table>
+        </Paper>
       )}
     </Box>
   );

@@ -170,7 +170,7 @@ function Payslip(props) {
       <Box
         ref={pdfRef}
         sx={{
-          width: 820,
+          width: 980,
           mx: "auto",
           backgroundColor: "#ffffff",
           border: "1px solid #081e4d",
@@ -206,6 +206,56 @@ function Payslip(props) {
               </Typography>
               <Typography>Ref: {referenceNumber}</Typography>
               <Typography>Date: {formatDate(data.pay_date)}</Typography>
+            </Grid>
+          </Grid>
+        </Box>
+
+        <Box sx={{ px: 3, py: 2.5, borderBottom: "1px solid #cbd5e1", backgroundColor: "#f8fafc" }}>
+          <Grid container spacing={2}>
+            <Grid item xs={6}>
+              <Table size="small">
+                <TableBody>
+                  <TableRow>
+                    <TableCell sx={{ borderBottom: "none", color: "#475569", width: "38%" }}>
+                      Employee Name
+                    </TableCell>
+                    <TableCell sx={{ borderBottom: "none", fontWeight: 700 }}>
+                      {data.full_name}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell sx={{ borderBottom: "none", color: "#475569" }}>
+                      ID Number
+                    </TableCell>
+                    <TableCell sx={{ borderBottom: "none", fontWeight: 700 }}>
+                      {data.id_number || "-"}
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </Grid>
+
+            <Grid item xs={6}>
+              <Table size="small">
+                <TableBody>
+                  <TableRow>
+                    <TableCell sx={{ borderBottom: "none", color: "#475569", width: "38%" }}>
+                      Employee Code
+                    </TableCell>
+                    <TableCell sx={{ borderBottom: "none", fontWeight: 700 }}>
+                      {data.employee_code || "-"}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell sx={{ borderBottom: "none", color: "#475569" }}>
+                      Pay Date
+                    </TableCell>
+                    <TableCell sx={{ borderBottom: "none", fontWeight: 700 }}>
+                      {formatDate(data.pay_date)}
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
             </Grid>
           </Grid>
         </Box>
