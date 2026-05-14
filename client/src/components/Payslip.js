@@ -71,6 +71,7 @@ function Payslip(props) {
   const rate = Number(data.rate_used ?? 0);
   const ot15 = Number(data.ot15_hours ?? 0);
   const ot20 = Number(data.ot20_hours ?? 0);
+  const totalHoursWorked = normalHours + ot15 + ot20;
 
   const normalPay = normalHours * rate;
   const ot15Pay = ot15 * rate * 1.5;
@@ -254,6 +255,15 @@ function Payslip(props) {
                 {formatDate(data.pay_date)}
               </Box>
             </Typography>
+
+            <Typography variant="body2">
+              <Box component="span" sx={{ color: "#475569", mr: 1 }}>
+                Hourly Rate:
+              </Box>
+              <Box component="span" sx={{ fontWeight: 700 }}>
+                {money(rate)}
+              </Box>
+            </Typography>
           </Stack>
         </Box>
 
@@ -265,7 +275,8 @@ function Payslip(props) {
               {/* EARNINGS */}
               <TableRow sx={{ backgroundColor: "#e6ecf8" }}>
                 <TableCell sx={{ fontWeight: 700 }}>EARNINGS</TableCell>
-                <TableCell />
+                <TableCell sx={{ fontWeight: 700 }}>Hours</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Rate</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 700 }}>
                   Amount
                 </TableCell>
@@ -273,29 +284,40 @@ function Payslip(props) {
 
               <TableRow>
                 <TableCell>Normal Pay</TableCell>
-                <TableCell />
+                <TableCell>{normalHours.toFixed(2)} hrs</TableCell>
+                <TableCell>{money(rate)}</TableCell>
                 <TableCell align="right">{money(normalPay)}</TableCell>
               </TableRow>
 
               <TableRow>
                 <TableCell>Overtime 1.5x</TableCell>
-                <TableCell />
+                <TableCell>{ot15.toFixed(2)} hrs</TableCell>
+                <TableCell>{money(rate * 1.5)}</TableCell>
                 <TableCell align="right">{money(ot15Pay)}</TableCell>
               </TableRow>
 
               <TableRow>
                 <TableCell>Overtime 2x</TableCell>
-                <TableCell />
+                <TableCell>{ot20.toFixed(2)} hrs</TableCell>
+                <TableCell>{money(rate * 2)}</TableCell>
                 <TableCell align="right">{money(ot20Pay)}</TableCell>
               </TableRow>
 
               <TableRow>
-                <TableCell colSpan={3} />
+                <TableCell sx={{ fontWeight: 700 }}>Total Hours Worked</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{totalHoursWorked.toFixed(2)} hrs</TableCell>
+                <TableCell />
+                <TableCell align="right" sx={{ fontWeight: 700 }}>{money(gross)}</TableCell>
+              </TableRow>
+
+              <TableRow>
+                <TableCell colSpan={4} />
               </TableRow>
 
               {/* DEDUCTIONS */}
               <TableRow sx={{ backgroundColor: "#e6ecf8" }}>
                 <TableCell sx={{ fontWeight: 700 }}>DEDUCTIONS</TableCell>
+                <TableCell />
                 <TableCell />
                 <TableCell align="right" sx={{ fontWeight: 700 }}>
                   Amount
@@ -305,12 +327,14 @@ function Payslip(props) {
               <TableRow>
                 <TableCell>UIF (1%)</TableCell>
                 <TableCell />
+                <TableCell />
                 <TableCell align="right">{money(uif)}</TableCell>
               </TableRow>
 
               {payeEnabled && (
                 <TableRow>
                   <TableCell>PAYE (Tax)</TableCell>
+                  <TableCell />
                   <TableCell />
                   <TableCell align="right">{money(tax)}</TableCell>
                 </TableRow>
@@ -320,13 +344,14 @@ function Payslip(props) {
                 <TableRow key={d.id}>
                   <TableCell>{d.description}</TableCell>
                   <TableCell />
+                  <TableCell />
                   <TableCell align="right">{money(d.amount)}</TableCell>
                 </TableRow>
               ))}
 
               {/* Solid closing line */}
               <TableRow>
-                <TableCell colSpan={3}
+                <TableCell colSpan={4}
                   sx={{ borderBottom: "3px solid #000000" }}
                 />
               </TableRow>

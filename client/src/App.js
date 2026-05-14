@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Routes, Route, Link, useLocation } from "react-router-dom";
+import { Routes, Route, Link, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import API from "./api";
 import SARS from "./components/SARS";
+import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import {
   AlertTitle,
   Box,
@@ -17,7 +18,8 @@ import {
   CssBaseline,
   Divider,
   Snackbar,
-  Alert
+  Alert,
+  IconButton
 } from "@mui/material";
 
 import Dashboard from "./components/Dashboard";
@@ -64,6 +66,8 @@ function PageTitle() {
    APP
 ================================= */
 function App() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [updateAvailable] = useState(false);
   const [version, setVersion] = useState("");
   const [updateProgress, setUpdateProgress] = useState(null);
@@ -114,6 +118,31 @@ function App() {
     ? `${lockOwner.holderName} currently has edit access for this database.`
     : "Another session currently has edit access for this database.";
 
+  const backTargets = {
+    "/employees": "/",
+    "/payruns": "/",
+    "/enter-hours": "/payruns",
+    "/payslips": "/",
+    "/ytd": "/",
+    "/company": "/",
+    "/sars": "/",
+    "/payslip/:lineId": "/payslips"
+  };
+
+  const getBackTarget = () => {
+    if (location.pathname.startsWith("/payslip/")) {
+      return backTargets["/payslip/:lineId"];
+    }
+
+    return backTargets[location.pathname] || "/";
+  };
+
+  const showBackButton = location.pathname !== "/";
+
+  const handleBack = () => {
+    navigate(getBackTarget());
+  };
+
   return (
     <Box sx={{ display: "flex" }}>
       <CssBaseline />
@@ -128,6 +157,17 @@ function App() {
         }}
       >
         <Toolbar>
+          {showBackButton ? (
+            <IconButton
+              edge="start"
+              color="inherit"
+              onClick={handleBack}
+              sx={{ mr: 1.5 }}
+              aria-label="Go back"
+            >
+              <ArrowBackRoundedIcon />
+            </IconButton>
+          ) : null}
           <PageTitle />
         </Toolbar>
       </AppBar>
