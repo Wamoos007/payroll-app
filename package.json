@@ -1,6 +1,6 @@
 {
   "name": "payroll-app",
-  "version": "2.6.5",
+  "version": "2.6.6",
   "description": "AMIEM Payroll Desktop Application",
   "main": "main.js",
   "author": "Waleed Moos",
@@ -41,7 +41,7 @@
   "build": {
     "appId": "com.payroll.app",
     "productName": "AMIEM Payroll",
-    "artifactName": "${productName}-Setup-${version}.${ext}",
+    "artifactName": "AMIEM-Payroll-Setup-${version}.${ext}",
     "asar": true,
     "extraResources": [
       {
