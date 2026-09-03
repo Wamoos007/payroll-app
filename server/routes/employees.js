@@ -10,9 +10,16 @@ const { calculateTax } = require("../payrollCalc");
 
 /* ===============================
    SYNC AN EMPLOYEE'S RATE INTO
-   EVERY PAY RUN LINE THEY'RE ON
+   THEIR NOT-YET-PAID PAY RUN LINES
    (rate + PAYE, so both the rate
    and the tax on it stay correct)
+
+   Only pay runs whose pay date is
+   today or in the future are
+   touched - anything already paid
+   keeps the rate it was actually
+   run at, so historical payslips
+   never silently change.
 ================================ */
 function syncRateToPayrollLines(employeeId, rate) {
   const settingsRows = db.prepare("SELECT key, value FROM settings").all();
@@ -26,6 +33,7 @@ function syncRateToPayrollLines(employeeId, rate) {
     FROM payroll_lines pl
     JOIN pay_runs pr ON pl.pay_run_id = pr.id
     WHERE pl.employee_id = ?
+      AND pr.pay_date >= date('now', 'localtime')
   `).all(employeeId);
 
   const updateLine = db.prepare(`
@@ -150,9 +158,9 @@ router.put("/:id", (req, res) => {
         id
       );
 
-      // Keep every pay run this employee appears on - past, current, and
-      // future - showing their current rate, and recalculate PAYE so the
-      // tax figure matches the new rate too (not just the rate itself).
+      // Push the new rate (and recalculated PAYE) onto this employee's
+      // not-yet-paid pay runs. Already-paid runs are left untouched so
+      // past payslips keep showing the rate that was actually used.
       syncRateToPayrollLines(Number(id), numericRate);
     });
 
