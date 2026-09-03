@@ -118,29 +118,24 @@ function App() {
     ? `${lockOwner.holderName} currently has edit access for this database.`
     : "Another session currently has edit access for this database.";
 
-  const backTargets = {
-    "/employees": "/",
-    "/payruns": "/",
-    "/enter-hours": "/payruns",
-    "/payslips": "/",
-    "/ytd": "/",
-    "/company": "/",
-    "/sars": "/",
-    "/payslip/:lineId": "/payslips"
-  };
-
-  const getBackTarget = () => {
-    if (location.pathname.startsWith("/payslip/")) {
-      return backTargets["/payslip/:lineId"];
-    }
-
-    return backTargets[location.pathname] || "/";
-  };
-
   const showBackButton = location.pathname !== "/";
 
+  // Go to whichever screen the user was actually just on, rather than a
+  // fixed "parent" page - this is a real back button, not a shortcut to a
+  // hardcoded destination. Falls back to the Dashboard if this page was
+  // opened directly (e.g. no prior screen in this session to return to).
   const handleBack = () => {
-    navigate(getBackTarget());
+    const hasPreviousScreen =
+      typeof window !== "undefined" &&
+      window.history.state &&
+      typeof window.history.state.idx === "number" &&
+      window.history.state.idx > 0;
+
+    if (hasPreviousScreen) {
+      navigate(-1);
+    } else {
+      navigate("/");
+    }
   };
 
   return (

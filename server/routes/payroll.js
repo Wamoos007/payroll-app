@@ -1,68 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../db");
-
-function getTaxYearForDate(dateValue) {
-  return db.prepare(`
-    SELECT id, label, start_date, end_date, primary_rebate
-    FROM tax_years
-    WHERE start_date <= ?
-      AND end_date >= ?
-    ORDER BY start_date DESC
-    LIMIT 1
-  `).get(dateValue, dateValue);
-}
+const { getTaxYearForDate, calculateTax } = require("../payrollCalc");
 
 function isIsoDate(value) {
   return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
-}
-
-function calculateTax(grossPay, taxYearId) {
-
-  console.log("Gross received:", grossPay);
-  console.log("Tax year id:", taxYearId);
-
-  const annualIncome = grossPay * 26;
-  console.log("Annual income:", annualIncome);
-
-  const bracket = db.prepare(`
-    SELECT *
-    FROM tax_brackets
-    WHERE tax_year_id = ?
-    AND min_income <= ?
-    AND (max_income IS NULL OR max_income > ?)
-    LIMIT 1
-  `).get(taxYearId, annualIncome, annualIncome);
-
-  console.log("Bracket found:", bracket);
-
-  if (!bracket) return 0;
-
-  let annualTax =
-    bracket.base_tax +
-    (annualIncome - bracket.min_income) * bracket.marginal_rate;
-
-  console.log("Annual tax before rebate:", annualTax);
-
-  const taxYear = db.prepare(`
-    SELECT primary_rebate
-    FROM tax_years
-    WHERE id = ?
-  `).get(taxYearId);
-
-  console.log("Tax year rebate:", taxYear);
-
-  if (taxYear && taxYear.primary_rebate) {
-    annualTax -= taxYear.primary_rebate * 26;
-  }
-
-  if (annualTax < 0) annualTax = 0;
-
-  const periodTax = Math.floor(annualTax / 26);
-
-  console.log("Final period tax:", periodTax);
-
-  return periodTax;
 }
 
 /* ===============================

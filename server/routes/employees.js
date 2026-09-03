@@ -6,6 +6,52 @@ const { parse } = require("csv-parse/sync");
 const fs = require("fs");
 const path = require("path");
 const { getUploadsPath } = require("../paths");
+const { calculateTax } = require("../payrollCalc");
+
+/* ===============================
+   SYNC AN EMPLOYEE'S RATE INTO
+   EVERY PAY RUN LINE THEY'RE ON
+   (rate + PAYE, so both the rate
+   and the tax on it stay correct)
+================================ */
+function syncRateToPayrollLines(employeeId, rate) {
+  const settingsRows = db.prepare("SELECT key, value FROM settings").all();
+  const settings = {};
+  settingsRows.forEach(row => {
+    settings[row.key] = row.value;
+  });
+
+  const lines = db.prepare(`
+    SELECT pl.id, pl.hours_wk1, pl.hours_wk2, pl.ot15_hours, pl.ot20_hours, pr.tax_year_id
+    FROM payroll_lines pl
+    JOIN pay_runs pr ON pl.pay_run_id = pr.id
+    WHERE pl.employee_id = ?
+  `).all(employeeId);
+
+  const updateLine = db.prepare(`
+    UPDATE payroll_lines
+    SET rate_used = ?, tax_amount = ?
+    WHERE id = ?
+  `);
+
+  lines.forEach(line => {
+    const normalHours = Number(line.hours_wk1 || 0) + Number(line.hours_wk2 || 0);
+    const ot15 = Number(line.ot15_hours || 0);
+    const ot20 = Number(line.ot20_hours || 0);
+
+    const gross =
+      (normalHours * rate) +
+      (ot15 * rate * 1.5) +
+      (ot20 * rate * 2);
+
+    let tax = 0;
+    if (settings.enable_paye === "1" && line.tax_year_id) {
+      tax = calculateTax(gross, line.tax_year_id);
+    }
+
+    updateLine.run(rate, tax, line.id);
+  });
+}
 
 const uploadDir = getUploadsPath();
 
@@ -86,22 +132,31 @@ router.put("/:id", (req, res) => {
       });
     }
 
-    db.prepare(`
-      UPDATE employees
-      SET full_name = ?,
-          employee_code = ?,
-          id_number = ?,
-          hourly_rate = ?,
-          email = ?
-      WHERE id = ?
-    `).run(
-      full_name.trim(),
-      employee_code.trim(),
-      id_number?.trim() || "",
-      numericRate,
-      email || null,
-      id
-    );
+    const applyUpdate = db.transaction(() => {
+      db.prepare(`
+        UPDATE employees
+        SET full_name = ?,
+            employee_code = ?,
+            id_number = ?,
+            hourly_rate = ?,
+            email = ?
+        WHERE id = ?
+      `).run(
+        full_name.trim(),
+        employee_code.trim(),
+        id_number?.trim() || "",
+        numericRate,
+        email || null,
+        id
+      );
+
+      // Keep every pay run this employee appears on - past, current, and
+      // future - showing their current rate, and recalculate PAYE so the
+      // tax figure matches the new rate too (not just the rate itself).
+      syncRateToPayrollLines(Number(id), numericRate);
+    });
+
+    applyUpdate();
 
     res.json({ success: true });
   } catch (err) {
