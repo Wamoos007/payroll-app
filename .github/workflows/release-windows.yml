@@ -60,6 +60,23 @@ jobs:
           }
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '```'
 
+      - name: Publish build log to debug branch
+        if: failure()
+        shell: pwsh
+        run: |
+          if (-not (Test-Path build-win.log)) {
+            "(no log file was produced)" | Out-File build-win.log
+          }
+          Copy-Item build-win.log $env:RUNNER_TEMP/build-win.log
+          git config user.email "ci@local"
+          git config user.name "CI Diagnostics"
+          git checkout --orphan ci-debug-logs
+          git rm -rf . 2>$null | Out-Null
+          Copy-Item $env:RUNNER_TEMP/build-win.log build-win.log
+          git add build-win.log
+          git commit -m "build log for run $env:GITHUB_RUN_ID"
+          git push --force origin HEAD:ci-debug-logs
+
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
