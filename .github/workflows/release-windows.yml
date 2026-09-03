@@ -41,7 +41,24 @@ jobs:
         run: npm ci --prefix client
 
       - name: Build Windows installer
-        run: npm run build:win
+        id: build_win
+        shell: pwsh
+        run: |
+          npm run build:win 2>&1 | Tee-Object -FilePath build-win.log
+          exit $LASTEXITCODE
+
+      - name: Show build log on failure
+        if: failure()
+        shell: pwsh
+        run: |
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Build Windows installer - failure log (last 200 lines)"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '```'
+          if (Test-Path build-win.log) {
+            Get-Content build-win.log -Tail 200 | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          } else {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "(no log file was produced)"
+          }
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '```'
 
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
