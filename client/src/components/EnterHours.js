@@ -14,8 +14,12 @@ import {
   TableRow,
   TableCell,
   TableBody,
-  TextField
+  TextField,
+  IconButton,
+  Tooltip
 } from "@mui/material";
+import LockRoundedIcon from "@mui/icons-material/LockRounded";
+import LockOpenRoundedIcon from "@mui/icons-material/LockOpenRounded";
 
 const money = value =>
   new Intl.NumberFormat("en-ZA", {
@@ -93,6 +97,24 @@ function EnterHours({ readOnly = false }) {
       ot15_hours: updatedLine.ot15_hours,
       ot20_hours: updatedLine.ot20_hours
     });
+  };
+
+  /* ================= LOCK / UNLOCK AN ENTRY =================
+     Locking a line finalizes it: its hours can no longer be
+     edited here, and it stops picking up rate changes if the
+     employee's hourly rate is edited later. */
+  const handleToggleLock = async (line) => {
+    const nextLocked = !line.locked;
+
+    await axios.put(`${API}/api/payroll/lines/${line.id}/lock`, {
+      locked: nextLocked
+    });
+
+    setLines(current =>
+      current.map(l =>
+        l.id === line.id ? { ...l, locked: nextLocked ? 1 : 0 } : l
+      )
+    );
   };
 
   /* ================= ADD MISSING EMPLOYEES ================= */
@@ -260,12 +282,15 @@ function EnterHours({ readOnly = false }) {
               <TableCell>Gross Pay</TableCell>
               <TableCell>Deductions</TableCell>
               <TableCell>Net Pay</TableCell>
+              <TableCell align="center">Lock</TableCell>
             </TableRow>
           </TableHead>
 
           <TableBody>
             {lines.map(line => {
               const summary = getLineSummary(line);
+              const isLocked = !!line.locked;
+              const fieldsDisabled = readOnly || isLocked;
 
               return (
                 <TableRow key={line.id}>
@@ -277,7 +302,7 @@ function EnterHours({ readOnly = false }) {
                     <TextField
                       type="number"
                       size="small"
-                      disabled={readOnly}
+                      disabled={fieldsDisabled}
                       value={line.hours_wk1 || 0}
                       onChange={(e) =>
                         handleChange(
@@ -293,7 +318,7 @@ function EnterHours({ readOnly = false }) {
                     <TextField
                       type="number"
                       size="small"
-                      disabled={readOnly}
+                      disabled={fieldsDisabled}
                       value={line.hours_wk2 || 0}
                       onChange={(e) =>
                         handleChange(
@@ -309,7 +334,7 @@ function EnterHours({ readOnly = false }) {
                     <TextField
                       type="number"
                       size="small"
-                      disabled={readOnly}
+                      disabled={fieldsDisabled}
                       value={line.ot15_hours || 0}
                       onChange={(e) =>
                         handleChange(
@@ -325,7 +350,7 @@ function EnterHours({ readOnly = false }) {
                     <TextField
                       type="number"
                       size="small"
-                      disabled={readOnly}
+                      disabled={fieldsDisabled}
                       value={line.ot20_hours || 0}
                       onChange={(e) =>
                         handleChange(
@@ -342,6 +367,30 @@ function EnterHours({ readOnly = false }) {
                   <TableCell>{money(summary.grossPay)}</TableCell>
                   <TableCell>{money(summary.totalDeductions)}</TableCell>
                   <TableCell>{money(summary.netPay)}</TableCell>
+
+                  <TableCell align="center">
+                    <Tooltip
+                      title={
+                        isLocked
+                          ? "Locked - hours and rate are frozen. Click to unlock."
+                          : "Lock this entry so it stops changing if the rate is edited later."
+                      }
+                    >
+                      <span>
+                        <IconButton
+                          size="small"
+                          disabled={readOnly}
+                          onClick={() => handleToggleLock(line)}
+                        >
+                          {isLocked ? (
+                            <LockRoundedIcon fontSize="small" color="warning" />
+                          ) : (
+                            <LockOpenRoundedIcon fontSize="small" />
+                          )}
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                  </TableCell>
                 </TableRow>
               );
             })}

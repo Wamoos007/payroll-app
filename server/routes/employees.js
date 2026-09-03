@@ -14,12 +14,17 @@ const { calculateTax } = require("../payrollCalc");
    (rate + PAYE, so both the rate
    and the tax on it stay correct)
 
-   Only pay runs whose pay date is
-   today or in the future are
-   touched - anything already paid
-   keeps the rate it was actually
-   run at, so historical payslips
-   never silently change.
+   Two independent safeguards keep
+   this from touching an entry that
+   should be left alone:
+   - pay runs whose pay date has
+     already passed are skipped
+     (they're presumed already paid)
+   - individual lines someone has
+     explicitly locked are skipped
+     regardless of pay date, since
+     that's a deliberate "I'm done
+     with this one" from the user
 ================================ */
 function syncRateToPayrollLines(employeeId, rate) {
   const settingsRows = db.prepare("SELECT key, value FROM settings").all();
@@ -34,6 +39,7 @@ function syncRateToPayrollLines(employeeId, rate) {
     JOIN pay_runs pr ON pl.pay_run_id = pr.id
     WHERE pl.employee_id = ?
       AND pr.pay_date >= date('now', 'localtime')
+      AND pl.locked = 0
   `).all(employeeId);
 
   const updateLine = db.prepare(`

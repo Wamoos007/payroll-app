@@ -261,13 +261,17 @@ router.put("/lines/:id", (req, res) => {
   try {
     // Get current line to know rate
     const existing = db.prepare(`
-      SELECT rate_used
+      SELECT rate_used, locked
       FROM payroll_lines
       WHERE id = ?
     `).get(req.params.id);
 
     if (!existing) {
       return res.status(404).json({ error: "Line not found" });
+    }
+
+    if (existing.locked) {
+      return res.status(423).json({ error: "This entry is locked and can't be edited." });
     }
 
     const rate = Number(existing.rate_used || 0);
@@ -334,6 +338,44 @@ router.put("/lines/:id", (req, res) => {
   } catch (err) {
     console.error("Update error:", err);
     res.status(500).json({ error: "Update failed" });
+  }
+});
+
+/* ===============================
+   LOCK / UNLOCK A LINE
+
+   A locked line is finalized: its
+   hours can't be edited, and a
+   later employee rate change will
+   skip right over it. This is the
+   deliberate, user-controlled way
+   to protect an entry - the
+   pay-date check alone only
+   catches runs whose date has
+   already passed.
+================================ */
+router.put("/lines/:id/lock", (req, res) => {
+  const { locked } = req.body;
+
+  try {
+    const existing = db.prepare(`
+      SELECT id FROM payroll_lines WHERE id = ?
+    `).get(req.params.id);
+
+    if (!existing) {
+      return res.status(404).json({ error: "Line not found" });
+    }
+
+    db.prepare(`
+      UPDATE payroll_lines
+      SET locked = ?
+      WHERE id = ?
+    `).run(locked ? 1 : 0, req.params.id);
+
+    res.json({ success: true, locked: !!locked });
+  } catch (err) {
+    console.error("Lock update failed:", err);
+    res.status(500).json({ error: "Failed to update lock" });
   }
 });
 
