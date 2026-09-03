@@ -13,7 +13,12 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    # Pinned rather than windows-latest: GitHub's "latest" Windows image
+    # moved to a newer Visual Studio that @electron/node-gyp doesn't
+    # recognize yet, which broke native module builds (better-sqlite3).
+    # Pinning avoids that happening again the next time GitHub rolls
+    # the image forward.
+    runs-on: windows-2022
     permissions:
       contents: write
 
